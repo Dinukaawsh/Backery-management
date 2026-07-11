@@ -35,7 +35,10 @@ type AssignLine = { productId: string; quantity: string };
 export default function AssignmentsPage() {
   const toast = useToast();
   const { settings } = useBusinessSettings();
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  });
   const [deliveryGuyId, setDeliveryGuyId] = useState("");
   const [summary, setSummary] = useState<AllocationSummary[]>([]);
   const [allocations, setAllocations] = useState<AllocationRecord[]>([]);

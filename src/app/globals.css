@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fffbeb;
+  --foreground: #000000;
+  --border: #fcd34d;
+  --border-focus: #f59e0b;
+  --muted: #78716c;
+  --scrollbar-size: 8px;
+  --scrollbar-track: #fef3c7;
+  --scrollbar-thumb: #f59e0b;
+  --scrollbar-thumb-hover: #d97706;
 }
 
 @theme inline {
@@ -12,15 +19,163 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+body:has(.admin-shell) {
+  overflow: hidden;
+}
+
+body:has(.login-page) {
+  overflow: auto;
+}
+
+/* Global custom scrollbar */
+html,
+body,
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Global form controls */
+.bakery-input,
+.bakery-textarea {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #000000;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bakery-input::placeholder,
+.bakery-textarea::placeholder {
+  color: #78716c;
+}
+
+.bakery-input:focus,
+.bakery-textarea:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgb(245 158 11 / 0.25);
+}
+
+.bakery-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #000000;
+  margin-bottom: 0.375rem;
+}
+
+.bakery-field-value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #000000;
+}
+
+.bakery-field-caption {
+  font-size: 0.75rem;
+  color: #78716c;
+}
+
+/* Toast notifications (react-hot-toast) */
+.bakery-hot-toast {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  width: min(92vw, 28rem) !important;
+  border-radius: 1rem !important;
+  border: 1px solid transparent !important;
+  padding: 0.875rem 1rem !important;
+  box-shadow:
+    0 16px 40px rgb(0 0 0 / 0.12),
+    0 4px 12px rgb(0 0 0 / 0.08) !important;
+  backdrop-filter: blur(10px);
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  animation: toast-bounce-in 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+
+.bakery-hot-toast-success {
+  border-color: #86efac !important;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%) !important;
+  color: #14532d !important;
+}
+
+.bakery-hot-toast-success svg {
+  color: #16a34a !important;
+}
+
+.bakery-hot-toast-error {
+  border-color: #fca5a5 !important;
+  background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%) !important;
+  color: #991b1b !important;
+}
+
+.bakery-hot-toast-error svg {
+  color: #dc2626 !important;
+}
+
+@keyframes toast-bounce-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-28px) scale(0.82);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(8px) scale(1.04);
+  }
+  75% {
+    transform: translateY(-4px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-bounce-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(-6px) scale(1.03);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.88);
+  }
 }

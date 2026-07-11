@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { HiOutlineTableCells } from "react-icons/hi2";
+
+import { BillModal } from "@/components/BillModal";
 
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +37,7 @@ export default function SalesPage() {
   const [dateTo, setDateTo] = useState("");
   const [deliveryGuyId, setDeliveryGuyId] = useState("");
   const [todayOnly, setTodayOnly] = useState(false);
+  const [billSaleId, setBillSaleId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -150,12 +152,13 @@ export default function SalesPage() {
       key: "bill",
       header: "Bill",
       render: (sale) => (
-        <Link
-          href={`/sales/${sale.id}/bill`}
+        <button
+          type="button"
           className="text-amber-700 hover:underline"
+          onClick={() => setBillSaleId(sale.id)}
         >
           {sale.billPrinted ? "View bill" : "Print bill"}
-        </Link>
+        </button>
       ),
     },
   ];
@@ -236,6 +239,8 @@ export default function SalesPage() {
         }
         searchPlaceholder="Search sales..."
       />
+
+      <BillModal saleId={billSaleId} onClose={() => setBillSaleId(null)} />
     </div>
   );
 }

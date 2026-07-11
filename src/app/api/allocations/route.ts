@@ -6,7 +6,7 @@ import { deliveryAllocations, products, users } from "@/db/schema";
 import { getAssignmentSummary } from "@/lib/allocations";
 import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
-import { dayRange, parseDateInput } from "@/lib/dates";
+import { dayRange, localDateString, parseDateInput } from "@/lib/dates";
 
 export async function OPTIONS() {
   return corsOptionsResponse();
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const dateInput = searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
+    const dateInput = searchParams.get("date") ?? localDateString();
     const date = parseDateInput(dateInput);
     if (!date) return corsResponse({ error: "Invalid date" }, 400);
 

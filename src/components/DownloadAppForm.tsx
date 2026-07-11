@@ -66,7 +66,7 @@ export function DownloadAppForm() {
         </div>
 
         <p className="mt-4 text-sm text-stone-600">
-          Delivery guys: enter the username and password from your admin to
+          Delivery partners: enter the username and password from your admin to
           download and install the Android app.
         </p>
 

@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       if (param) {
         deliveryGuyId = Number(param);
         if (!Number.isInteger(deliveryGuyId) || deliveryGuyId <= 0) {
-          return corsResponse({ error: "Invalid delivery guy id" }, 400);
+          return corsResponse({ error: "Invalid delivery partner id" }, 400);
         }
       }
     }
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     const items = body.items;
 
     if (!Number.isInteger(deliveryGuyId) || deliveryGuyId <= 0) {
-      return corsResponse({ error: "Invalid delivery guy" }, 400);
+      return corsResponse({ error: "Invalid delivery partner" }, 400);
     }
     if (!allocationDate) {
       return corsResponse({ error: "Invalid allocation date" }, 400);
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (!deliveryGuy || deliveryGuy.role !== "delivery" || !deliveryGuy.isActive) {
-      return corsResponse({ error: "Delivery guy not found or inactive" }, 400);
+      return corsResponse({ error: "Delivery partner not found or inactive" }, 400);
     }
 
     const created = [];

@@ -78,7 +78,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return corsResponse(
         {
           error:
-            "Cannot remove this assignment because the delivery guy already sold part of it",
+            "Cannot remove this assignment because the delivery partner already sold part of it",
         },
         400,
       );

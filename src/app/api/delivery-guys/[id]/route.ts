@@ -43,14 +43,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
       .limit(1);
 
     if (!row || row.role !== "delivery") {
-      return corsResponse({ error: "Delivery guy not found" }, 404);
+      return corsResponse({ error: "Delivery partner not found" }, 404);
     }
 
     const { role: _role, ...deliveryGuyData } = row;
     return corsResponse({ deliveryGuy: deliveryGuyData });
   } catch (error) {
     console.error("GET /api/delivery-guys/[id] failed:", error);
-    return corsResponse({ error: "Failed to fetch delivery guy" }, 500);
+    return corsResponse({ error: "Failed to fetch delivery partner" }, 500);
   }
 }
 
@@ -119,14 +119,14 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       });
 
     if (!deliveryGuy || deliveryGuy.role !== "delivery") {
-      return corsResponse({ error: "Delivery guy not found" }, 404);
+      return corsResponse({ error: "Delivery partner not found" }, 404);
     }
 
     const { role: _role, ...data } = deliveryGuy;
     return corsResponse({ deliveryGuy: data });
   } catch (error) {
     console.error("PUT /api/delivery-guys/[id] failed:", error);
-    return corsResponse({ error: "Failed to update delivery guy" }, 500);
+    return corsResponse({ error: "Failed to update delivery partner" }, 500);
   }
 }
 
@@ -148,12 +148,12 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       .limit(1);
 
     if (!deliveryGuy || deliveryGuy.role !== "delivery") {
-      return corsResponse({ error: "Delivery guy not found" }, 404);
+      return corsResponse({ error: "Delivery partner not found" }, 404);
     }
 
     if (deliveryGuy.isActive) {
       return corsResponse(
-        { error: "Disable the delivery guy before deleting" },
+        { error: "Disable the delivery partner before deleting" },
         400,
       );
     }
@@ -165,7 +165,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     if (saleCount.count > 0) {
       return corsResponse(
-        { error: "Cannot delete a delivery guy who has sales records" },
+        { error: "Cannot delete a delivery partner who has sales records" },
         400,
       );
     }
@@ -179,6 +179,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     return corsResponse({ ok: true });
   } catch (error) {
     console.error("DELETE /api/delivery-guys/[id] failed:", error);
-    return corsResponse({ error: "Failed to delete delivery guy" }, 500);
+    return corsResponse({ error: "Failed to delete delivery partner" }, 500);
   }
 }

@@ -92,10 +92,10 @@ export default function DeliveryGuysPage() {
           phone: form.phone,
           password: form.password || undefined,
         });
-        toast.success("Delivery guy updated");
+        toast.success("Delivery partner updated");
       } else {
         await createDeliveryGuy(form);
-        toast.success("Delivery guy registered");
+        toast.success("Delivery partner registered");
       }
       setModalOpen(false);
       await load();
@@ -116,8 +116,8 @@ export default function DeliveryGuysPage() {
       setDisableTarget(null);
       toast.success(
         disableTarget.isActive
-          ? "Delivery guy disabled"
-          : "Delivery guy enabled",
+          ? "Delivery partner disabled"
+          : "Delivery partner enabled",
       );
       await load();
     } catch (err) {
@@ -133,7 +133,7 @@ export default function DeliveryGuysPage() {
     try {
       await deleteDeliveryGuy(deleteTarget.id);
       setDeleteTarget(null);
-      toast.success("Delivery guy deleted");
+      toast.success("Delivery partner deleted");
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");
@@ -144,14 +144,14 @@ export default function DeliveryGuysPage() {
 
   function handleExportPdf() {
     if (!deliveryGuys.length) {
-      toast.error("No delivery guys to export");
+      toast.error("No delivery partners to export");
       return;
     }
 
     downloadPdf({
       filename: "delivery-guys-list",
-      title: "Delivery Guys List",
-      subtitle: `${deliveryGuys.length} delivery guy(s)`,
+      title: "Delivery Partners List",
+      subtitle: `${deliveryGuys.length} delivery partner(s)`,
       business: settings,
       sections: [
         {
@@ -166,7 +166,7 @@ export default function DeliveryGuysPage() {
         },
       ],
     });
-    toast.success("Delivery guys PDF downloaded");
+    toast.success("Delivery partners PDF downloaded");
   }
 
   const columns: Column<DeliveryGuy>[] = [
@@ -234,8 +234,8 @@ export default function DeliveryGuysPage() {
   return (
     <div>
       <PageHeader
-        title="Delivery Guys"
-        description="Registered delivery guys. Disable before deleting. Only disabled guys can be removed."
+        title="Delivery Partners"
+        description="Registered delivery partners. Disable before deleting. Only disabled partners can be removed."
         action={
           <PageHeaderActions>
             <DownloadPdfButton
@@ -245,7 +245,7 @@ export default function DeliveryGuysPage() {
             <Button onClick={openCreate}>
               <span className="inline-flex items-center gap-2">
                 <HiOutlineUserPlus className="h-4 w-4" aria-hidden />
-                Register delivery guy
+                Register delivery partner
               </span>
             </Button>
           </PageHeaderActions>
@@ -257,18 +257,18 @@ export default function DeliveryGuysPage() {
         data={deliveryGuys}
         loading={loading}
         rowKey={(row) => row.id}
-        emptyMessage="No delivery guys registered yet."
+        emptyMessage="No delivery partners registered yet."
         getSearchText={(guy) =>
           [guy.name, guy.email, guy.phone, guy.isActive ? "active" : "disabled"]
             .filter(Boolean)
             .join(" ")
         }
-        searchPlaceholder="Search delivery guys..."
+        searchPlaceholder="Search delivery partners..."
       />
 
       <Modal
         open={modalOpen}
-        title={editing ? `Edit ${editing.name}` : "Register delivery guy"}
+        title={editing ? `Edit ${editing.name}` : "Register delivery partner"}
         onClose={() => setModalOpen(false)}
         footer={
           <div className="grid grid-cols-2 gap-3">
@@ -313,7 +313,7 @@ export default function DeliveryGuysPage() {
 
       <ConfirmModal
         open={disableTarget !== null}
-        title={disableTarget?.isActive ? "Disable delivery guy" : "Enable delivery guy"}
+        title={disableTarget?.isActive ? "Disable delivery partner" : "Enable delivery partner"}
         message={
           disableTarget?.isActive
             ? `Disable ${disableTarget.name}? They will not be able to login until enabled again.`
@@ -329,7 +329,7 @@ export default function DeliveryGuysPage() {
 
       <ConfirmModal
         open={deleteTarget !== null}
-        title="Delete delivery guy"
+        title="Delete delivery partner"
         message={`Permanently delete ${deleteTarget?.name}? Only possible when disabled and with no sales records.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"

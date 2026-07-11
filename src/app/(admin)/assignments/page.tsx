@@ -73,7 +73,7 @@ export default function AssignmentsPage() {
     void fetchDeliveryGuys()
       .then(setDeliveryGuys)
       .catch((err) =>
-        toast.error(err instanceof Error ? err.message : "Failed to load delivery guys"),
+        toast.error(err instanceof Error ? err.message : "Failed to load delivery partners"),
       );
     void fetchProducts()
       .then(setProducts)
@@ -88,7 +88,7 @@ export default function AssignmentsPage() {
 
   async function handleAssign() {
     if (!assignGuyId) {
-      toast.error("Select a delivery guy");
+      toast.error("Select a delivery partner");
       return;
     }
 
@@ -113,7 +113,7 @@ export default function AssignmentsPage() {
       });
       setModalOpen(false);
       setLines([{ productId: "", quantity: "" }]);
-      toast.success("Stock assigned to delivery guy");
+      toast.success("Stock assigned to delivery partner");
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Assign failed");
@@ -145,8 +145,8 @@ export default function AssignmentsPage() {
 
     const guy = deliveryGuys.find((item) => String(item.id) === deliveryGuyId);
     const filterLabel = guy
-      ? `Date: ${date}  •  Delivery guy: ${guy.name}`
-      : `Date: ${date}  •  All delivery guys`;
+      ? `Date: ${date}  •  Delivery partner: ${guy.name}`
+      : `Date: ${date}  •  All delivery partners`;
 
     downloadPdf({
       filename: "stock-assignments",
@@ -157,7 +157,7 @@ export default function AssignmentsPage() {
         {
           heading: "Assigned vs sold summary",
           headers: [
-            "Delivery Guy",
+            "Delivery Partner",
             "Product",
             "Given",
             "Sold",
@@ -173,7 +173,7 @@ export default function AssignmentsPage() {
         },
         {
           heading: "Assignment history",
-          headers: ["Delivery Guy", "Product", "Quantity", "Assigned at"],
+          headers: ["Delivery Partner", "Product", "Quantity", "Assigned at"],
           rows: allocations.map((row) => [
             row.deliveryGuyName,
             row.productName,
@@ -189,7 +189,7 @@ export default function AssignmentsPage() {
   const summaryColumns: Column<AllocationSummary>[] = [
     {
       key: "guy",
-      header: "Delivery guy",
+      header: "Delivery partner",
       render: (row) => row.deliveryGuyName,
     },
     { key: "product", header: "Product", render: (row) => row.productName },
@@ -209,7 +209,7 @@ export default function AssignmentsPage() {
   const allocationColumns: Column<AllocationRecord>[] = [
     {
       key: "guy",
-      header: "Delivery guy",
+      header: "Delivery partner",
       render: (row) => row.deliveryGuyName,
     },
     { key: "product", header: "Product", render: (row) => row.productName },
@@ -241,7 +241,7 @@ export default function AssignmentsPage() {
     <div>
       <PageHeader
         title="Stock Assignments"
-        description="Give products to delivery guys each day. They sell from this assigned stock via the mobile app."
+        description="Give products to delivery partners each day. They sell from this assigned stock via the mobile app."
         action={
           <PageHeaderActions>
             <DownloadPdfButton
@@ -267,11 +267,11 @@ export default function AssignmentsPage() {
           onChange={(e) => setDate(e.target.value)}
         />
         <Select
-          label="Filter by delivery guy"
+          label="Filter by delivery partner"
           value={deliveryGuyId}
           onChange={(e) => setDeliveryGuyId(e.target.value)}
         >
-          <option value="">All delivery guys</option>
+          <option value="">All delivery partners</option>
           {deliveryGuys.map((guy) => (
             <option key={guy.id} value={guy.id}>
               {guy.name}
@@ -325,7 +325,7 @@ export default function AssignmentsPage() {
 
       <Modal
         open={modalOpen}
-        title="Assign stock to delivery guy"
+        title="Assign stock to delivery partner"
         onClose={() => setModalOpen(false)}
         size="lg"
         footer={
@@ -341,11 +341,11 @@ export default function AssignmentsPage() {
       >
         <div className="space-y-4">
           <Select
-            label="Delivery guy"
+            label="Delivery partner"
             value={assignGuyId}
             onChange={(e) => setAssignGuyId(e.target.value)}
           >
-            <option value="">Select delivery guy</option>
+            <option value="">Select delivery partner</option>
             {deliveryGuys.map((guy) => (
               <option key={guy.id} value={guy.id} disabled={!guy.isActive}>
                 {guy.name}
@@ -356,13 +356,13 @@ export default function AssignmentsPage() {
 
           {deliveryGuys.length === 0 ? (
             <p className="text-sm text-amber-800">
-              No delivery guys registered yet. Add one from the Delivery Guys page.
+              No delivery partners registered yet. Add one from the Delivery Partners page.
             </p>
           ) : null}
           {deliveryGuys.length > 0 &&
           deliveryGuys.every((guy) => !guy.isActive) ? (
             <p className="text-sm text-amber-800">
-              All delivery guys are disabled. Enable one from the Delivery Guys page
+              All delivery partners are disabled. Enable one from the Delivery Partners page
               to assign stock.
             </p>
           ) : null}

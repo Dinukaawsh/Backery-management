@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     return corsResponse({ deliveryGuys });
   } catch (error) {
     console.error("GET /api/delivery-guys failed:", error);
-    return corsResponse({ error: "Failed to fetch delivery guys" }, 500);
+    return corsResponse({ error: "Failed to fetch delivery partners" }, 500);
   }
 }
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const input = validateDeliveryGuyInput(body);
 
     if (!input) {
-      return corsResponse({ error: "Invalid delivery guy data" }, 400);
+      return corsResponse({ error: "Invalid delivery partner data" }, 400);
     }
 
     const passwordHash = await hashPassword(input.password);
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const message =
       error instanceof Error && error.message.includes("unique")
         ? "Email already exists"
-        : "Failed to create delivery guy";
+        : "Failed to create delivery partner";
     return corsResponse({ error: message }, 500);
   }
 }

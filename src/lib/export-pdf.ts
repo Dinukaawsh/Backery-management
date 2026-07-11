@@ -175,7 +175,7 @@ export function buildSalesFilterSubtitle(input: {
   }
 
   if (input.deliveryGuyName) {
-    parts.push(`Delivery guy: ${input.deliveryGuyName}`);
+    parts.push(`Delivery partner: ${input.deliveryGuyName}`);
   }
 
   return parts.join("  •  ");

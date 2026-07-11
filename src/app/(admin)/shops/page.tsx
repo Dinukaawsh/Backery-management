@@ -49,7 +49,7 @@ function formatAddedBy(shop: Shop) {
   if (!shop.addedByName) return "—";
   const role =
     shop.addedByRole === "delivery"
-      ? "Delivery guy"
+      ? "Delivery partner"
       : shop.addedByRole === "admin"
         ? "Admin"
         : "";
@@ -220,7 +220,7 @@ export default function ShopsPage() {
     downloadPdf({
       filename: "shops-and-drops",
       title: "Shops & Daily Drops",
-      subtitle: `Drop period: ${dropPeriodLabel()}${deliveryGuyId ? " • Filtered delivery guy" : ""}`,
+      subtitle: `Drop period: ${dropPeriodLabel()}${deliveryGuyId ? " • Filtered delivery partner" : ""}`,
       business: settings,
       sections: [
         {
@@ -240,7 +240,7 @@ export default function ShopsPage() {
           headers: [
             "Date",
             "Shop",
-            "Delivery guy",
+            "Delivery partner",
             "Items dropped",
             "Total qty",
             "Amount (Rs)",
@@ -336,7 +336,7 @@ export default function ShopsPage() {
     { key: "shop", header: "Shop", render: (d) => d.shopName },
     {
       key: "delivery",
-      header: "Delivery guy",
+      header: "Delivery partner",
       render: (d) => d.deliveryGuyName,
     },
     {
@@ -362,7 +362,7 @@ export default function ShopsPage() {
     <div className="space-y-8">
       <PageHeader
         title="Shops"
-        description="Manage shops and see what each delivery guy dropped at each shop on any day."
+        description="Manage shops and see what each delivery partner dropped at each shop on any day."
         action={
           <PageHeaderActions>
             <DownloadPdfButton
@@ -411,7 +411,7 @@ export default function ShopsPage() {
           <div>
             <h2 className="text-lg font-semibold text-black">Shop drops</h2>
             <p className="text-sm text-stone-600">
-              See how many items and product types each delivery guy dropped at
+              See how many items and product types each delivery partner dropped at
               each shop. Pick any date or date range.
             </p>
           </div>
@@ -427,11 +427,11 @@ export default function ShopsPage() {
               onChange={(e) => setDropDateTo(e.target.value)}
             />
             <Select
-              label="Delivery guy"
+              label="Delivery partner"
               value={deliveryGuyId}
               onChange={(e) => setDeliveryGuyId(e.target.value)}
             >
-              <option value="">All delivery guys</option>
+              <option value="">All delivery partners</option>
               {deliveryGuys.map((guy) => (
                 <option key={guy.id} value={guy.id}>
                   {guy.name}
@@ -511,8 +511,8 @@ export default function ShopsPage() {
         title={disableTarget?.isActive ? "Disable shop" : "Enable shop"}
         message={
           disableTarget?.isActive
-            ? `Disable ${disableTarget.name}? Delivery guys will not be able to record new drops there.`
-            : `Enable ${disableTarget?.name}? Delivery guys can record drops again.`
+            ? `Disable ${disableTarget.name}? Delivery partners will not be able to record new drops there.`
+            : `Enable ${disableTarget?.name}? Delivery partners can record drops again.`
         }
         confirmLabel={disableTarget?.isActive ? "Disable" : "Enable"}
         cancelLabel="Cancel"

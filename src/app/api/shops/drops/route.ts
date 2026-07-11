@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       if (date) {
         if (date < minDate) {
           return corsResponse(
-            { error: "Delivery guys can only view the last 7 days" },
+            { error: "Delivery partners can only view the last 7 days" },
             400,
           );
         }

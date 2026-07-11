@@ -458,7 +458,7 @@ export default function SettingsPage() {
               icon={HiOutlineCog6Tooth}
               label="Status"
               value={
-                appDownload?.enabled ? "Ready for delivery guys" : "Not configured"
+                appDownload?.enabled ? "Ready for delivery partners" : "Not configured"
               }
             />
           </div>
@@ -467,7 +467,7 @@ export default function SettingsPage() {
         <BentoCard
           icon={HiOutlineDocumentText}
           title="Shop bill preview"
-          description="Sample bill delivery guys hand to shops."
+          description="Sample bill delivery partners hand to shops."
           action={
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-900">
               Sample
@@ -571,7 +571,7 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <p className="text-sm text-stone-600">
             These credentials are only for downloading the mobile app. They are
-            not linked to admin or delivery guy logins.
+            not linked to admin or delivery partner logins.
           </p>
           <Input
             label="Download username"

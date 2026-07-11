@@ -93,7 +93,7 @@ export default function SalesPage() {
           headers: [
             "Date",
             "Shop",
-            "Delivery Guy",
+            "Delivery Partner",
             "Total (Rs)",
             "Bill Printed",
           ],
@@ -117,7 +117,7 @@ export default function SalesPage() {
     }
 
     downloadCsv("bakery-sales-report.csv", [
-      ["Date", "Shop", "Delivery Guy", "Total (Rs)", "Bill Printed"],
+      ["Date", "Shop", "Delivery Partner", "Total (Rs)", "Bill Printed"],
       ...sales.map((sale) => [
         new Date(sale.saleDate).toLocaleString(),
         sale.shopName,
@@ -138,7 +138,7 @@ export default function SalesPage() {
     { key: "shop", header: "Shop", render: (s) => s.shopName },
     {
       key: "delivery",
-      header: "Delivery guy",
+      header: "Delivery partner",
       render: (s) => s.deliveryGuyName,
     },
     {
@@ -164,7 +164,7 @@ export default function SalesPage() {
     <div>
       <PageHeader
         title="Sales"
-        description="Filter by date or delivery guy, then download the filtered sales report."
+        description="Filter by date or delivery partner, then download the filtered sales report."
         action={
           <PageHeaderActions>
             <DownloadPdfButton
@@ -197,7 +197,7 @@ export default function SalesPage() {
           onChange={(e) => setDateTo(e.target.value)}
         />
         <Select
-          label="Delivery guy"
+          label="Delivery partner"
           value={deliveryGuyId}
           onChange={(e) => setDeliveryGuyId(e.target.value)}
         >

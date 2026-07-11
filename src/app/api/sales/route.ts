@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         : auth.session.id;
 
     if (!Number.isInteger(deliveryGuyId) || deliveryGuyId <= 0) {
-      return corsResponse({ error: "Invalid delivery guy" }, 400);
+      return corsResponse({ error: "Invalid delivery partner" }, 400);
     }
 
     const [shop] = await db

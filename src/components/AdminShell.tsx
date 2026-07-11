@@ -24,7 +24,7 @@ const navItems: Array<{ href: string; label: string; icon: IconType }> = [
   { href: "/dashboard", label: "Dashboard", icon: HiOutlineChartBarSquare },
   { href: "/products", label: "Products", icon: HiOutlineCube },
   { href: "/sales", label: "Sales", icon: HiOutlineCurrencyDollar },
-  { href: "/delivery-guys", label: "Delivery Guys", icon: HiOutlineTruck },
+  { href: "/delivery-guys", label: "Delivery Partners", icon: HiOutlineTruck },
   {
     href: "/assignments",
     label: "Stock Assignments",

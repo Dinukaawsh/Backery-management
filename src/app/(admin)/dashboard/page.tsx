@@ -151,7 +151,7 @@ export default function DashboardPage() {
       icon: HiOutlineCube,
     },
     {
-      label: "Delivery guys",
+      label: "Delivery partners",
       value: stats.totalDeliveryGuys,
       accent: "bg-orange-600",
       icon: HiOutlineTruck,
@@ -241,7 +241,7 @@ export default function DashboardPage() {
 
         <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-black">
-            Top delivery guys
+            Top delivery partners
           </h2>
           <div className="h-72">
             {deliveryChart.length === 0 ? (

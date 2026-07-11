@@ -6,13 +6,11 @@ import { products, saleItems, sales, shops, users } from "@/db/schema";
 import { getRemainingStock } from "@/lib/allocations";
 import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
-import { parseDateInput, sevenDaysAgo } from "@/lib/dates";
+import { parseDateInput, parseSaleTimestamp, sevenDaysAgo, localDateString } from "@/lib/dates";
 import { validateSaleInput } from "@/lib/validators";
 
 function startOfToday() {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  return date;
+  return parseDateInput(localDateString())!;
 }
 
 async function getSaleWithDetails(saleId: number) {
@@ -79,8 +77,7 @@ export async function GET(request: NextRequest) {
 
     if (todayOnly) {
       const today = startOfToday();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
       conditions.push(gte(sales.saleDate, today));
       conditions.push(lte(sales.saleDate, tomorrow));
     }
@@ -170,7 +167,8 @@ export async function POST(request: NextRequest) {
       return corsResponse({ error: "This shop is disabled" }, 400);
     }
 
-    const saleDate = parseDateInput(input.saleDate.slice(0, 10)) ?? new Date();
+    const saleDay =
+      parseDateInput(input.saleDate.slice(0, 10)) ?? parseDateInput(localDateString())!;
 
     for (const item of input.items) {
       const [product] = await db
@@ -196,7 +194,7 @@ export async function POST(request: NextRequest) {
       const remaining = await getRemainingStock(
         deliveryGuyId,
         item.productId,
-        saleDate,
+        saleDay,
       );
 
       if (remaining < item.quantity) {
@@ -222,7 +220,7 @@ export async function POST(request: NextRequest) {
       .values({
         deliveryGuyId,
         shopId: input.shopId,
-        saleDate: new Date(input.saleDate),
+        saleDate: parseSaleTimestamp(input.saleDate),
         totalAmount: totalAmount.toFixed(2),
         notes: input.notes,
       })

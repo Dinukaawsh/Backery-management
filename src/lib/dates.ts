@@ -1,22 +1,35 @@
+/** Sri Lanka business timezone — all daily stock/sales boundaries use this. */
+export const BUSINESS_TIMEZONE = "Asia/Colombo";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Parse YYYY-MM-DD as midnight on that calendar day in Sri Lanka. */
 export function parseDateInput(value: string) {
-  const date = new Date(value);
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    return new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00+05:30`);
+  }
+
+  const date = new Date(trimmed);
   if (Number.isNaN(date.getTime())) return null;
-  date.setHours(0, 0, 0, 0);
   return date;
 }
 
+/** Today's calendar date (YYYY-MM-DD) in Sri Lanka. */
 export function localDateString(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BUSINESS_TIMEZONE,
+  }).format(date);
 }
 
+/** Start/end of the business calendar day containing `date` (Sri Lanka). */
 export function dayRange(date: Date) {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  const start = parseDateInput(localDateString(date));
+  if (!start) {
+    throw new Error("Invalid date for day range");
+  }
+  const end = new Date(start.getTime() + DAY_MS);
   return { start, end };
 }
 
@@ -25,8 +38,16 @@ export function todayRange() {
 }
 
 export function sevenDaysAgo() {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() - 6);
-  return date;
+  const { start } = todayRange();
+  return new Date(start.getTime() - 6 * DAY_MS);
+}
+
+/** Resolve sale timestamp from API input (date-only or ISO). */
+export function parseSaleTimestamp(saleDate: string) {
+  const trimmed = saleDate.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return new Date();
+  }
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }

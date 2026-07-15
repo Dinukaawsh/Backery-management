@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { IconType } from "react-icons";
 import {
   HiOutlineArrowRightOnRectangle,
@@ -22,7 +22,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { useT } from "@/lib/i18n";
 import type { EnMessages } from "@/lib/i18n/messages/en";
-import { logout } from "@/lib/api";
+import { getMe, logout } from "@/lib/api";
 
 type NavChild = {
   href: string;
@@ -93,8 +93,34 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   const currentPage = t(resolveTitleKey(pathname));
+
+  const loadProfile = useCallback(async () => {
+    try {
+      const data = await getMe();
+      setProfileName(data.user.name);
+      setProfileImageUrl(data.imageUrl?.trim() || null);
+    } catch {
+      // Keep previous profile if /me fails.
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile, pathname]);
+
+  useEffect(() => {
+    function onProfileUpdated() {
+      void loadProfile();
+    }
+    window.addEventListener("bakery:profile-updated", onProfileUpdated);
+    return () => {
+      window.removeEventListener("bakery:profile-updated", onProfileUpdated);
+    };
+  }, [loadProfile]);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -127,9 +153,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <HiOutlineBuildingStorefront className="h-4 w-4" />
             {settings.businessName}
           </p>
-          <h1 className="mt-1 text-xl font-bold text-black">
-            {t("shell.adminPanel")}
-          </h1>
+          <div className="mt-3 flex items-center gap-3">
+            {profileImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profileImageUrl}
+                alt={profileName ?? t("shell.adminPanel")}
+                className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-amber-200"
+              />
+            ) : null}
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-bold text-black">
+                {t("shell.adminPanel")}
+              </h1>
+              {profileName ? (
+                <p className="truncate text-sm text-amber-800">{profileName}</p>
+              ) : null}
+            </div>
+          </div>
         </div>
 
         <nav className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4">
@@ -240,6 +281,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {profileImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profileImageUrl}
+                alt={profileName ?? ""}
+                className="h-9 w-9 rounded-full object-cover ring-2 ring-amber-200"
+              />
+            ) : null}
             <LocaleToggle />
             <button
               type="button"

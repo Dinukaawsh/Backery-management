@@ -256,6 +256,7 @@ export default function SettingsPage() {
       setOriginalEmail(result.user.email);
       setAccountEditOpen(false);
       toast.success(t("settings.accountUpdatedToast"));
+      window.dispatchEvent(new Event("bakery:profile-updated"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.updateFailed"));
     } finally {

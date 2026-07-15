@@ -166,7 +166,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <img
                 src={profileImageUrl}
                 alt={profileName ?? t("shell.adminPanel")}
-                className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-amber-200"
+                className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-amber-200 lg:hidden"
               />
             ) : null}
             <div className="min-w-0">
@@ -294,17 +294,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <img
                 src={profileImageUrl}
                 alt={profileName ?? ""}
-                className="h-9 w-9 rounded-full object-cover ring-2 ring-amber-200"
+                className="hidden h-9 w-9 rounded-full object-cover ring-2 ring-amber-200 lg:block"
               />
             ) : null}
             <LocaleToggle />
             <button
               type="button"
+              aria-label={t("shell.logout")}
               onClick={() => setLogoutOpen(true)}
-              className="flex items-center gap-2 rounded-lg border border-amber-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50 lg:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-200 text-red-600 hover:bg-red-50 lg:hidden"
             >
               <HiOutlineArrowRightOnRectangle className="h-5 w-5" />
-              {t("shell.logout")}
             </button>
           </div>
         </header>

@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { HiOutlineTrash } from "react-icons/hi2";
 
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { Button } from "@/components/ui/Button";
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Column, DataTable } from "@/components/ui/DataTable";
 import { DateInput } from "@/components/ui/DateInput";
 import {
@@ -19,11 +17,9 @@ import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   createAllocation,
-  deleteAllocation,
   fetchAllocations,
   fetchDeliveryGuys,
   fetchProducts,
-  type AllocationRecord,
   type AllocationSummary,
   type DeliveryGuy,
   type Product,
@@ -43,7 +39,6 @@ export default function AssignmentsPage() {
   });
   const [deliveryGuyId, setDeliveryGuyId] = useState("");
   const [summary, setSummary] = useState<AllocationSummary[]>([]);
-  const [allocations, setAllocations] = useState<AllocationRecord[]>([]);
   const [deliveryGuys, setDeliveryGuys] = useState<DeliveryGuy[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,10 +48,6 @@ export default function AssignmentsPage() {
     { productId: "", quantity: "" },
   ]);
   const [saving, setSaving] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<AllocationRecord | null>(
-    null,
-  );
-  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,7 +57,6 @@ export default function AssignmentsPage() {
         deliveryGuyId: deliveryGuyId ? Number(deliveryGuyId) : undefined,
       });
       setSummary(data.summary);
-      setAllocations(data.allocations);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.failedToLoad"));
     } finally {
@@ -131,23 +121,8 @@ export default function AssignmentsPage() {
     }
   }
 
-  async function confirmDeleteAllocation() {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      await deleteAllocation(deleteTarget.id);
-      setDeleteTarget(null);
-      toast.success(t("assignments.removedToast"));
-      await load();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.deleteFailed"));
-    } finally {
-      setDeleting(false);
-    }
-  }
-
   function handleExportPdf() {
-    if (!summary.length && !allocations.length) {
+    if (!summary.length) {
       toast.error(t("assignments.noExport"));
       return;
     }
@@ -178,21 +153,6 @@ export default function AssignmentsPage() {
             String(row.allocated),
             String(row.sold),
             String(row.remaining),
-          ]),
-        },
-        {
-          heading: t("assignments.pdfHistoryHeading"),
-          headers: [
-            t("assignments.colPartner"),
-            t("assignments.colProduct"),
-            t("assignments.colQuantity"),
-            t("assignments.colAssignedAt"),
-          ],
-          rows: allocations.map((row) => [
-            row.deliveryGuyName,
-            row.productName,
-            String(row.quantity),
-            new Date(row.createdAt).toLocaleString(),
           ]),
         },
       ],
@@ -228,43 +188,6 @@ export default function AssignmentsPage() {
     },
   ];
 
-  const allocationColumns: Column<AllocationRecord>[] = [
-    {
-      key: "guy",
-      header: t("assignments.colPartner"),
-      render: (row) => row.deliveryGuyName,
-    },
-    {
-      key: "product",
-      header: t("assignments.colProduct"),
-      render: (row) => row.productName,
-    },
-    {
-      key: "qty",
-      header: t("assignments.colQuantity"),
-      render: (row) => row.quantity,
-    },
-    {
-      key: "time",
-      header: t("assignments.colAssignedAt"),
-      render: (row) => new Date(row.createdAt).toLocaleString(),
-    },
-    {
-      key: "actions",
-      header: t("assignments.colActions"),
-      render: (row) => (
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-red-600 hover:bg-red-50"
-          onClick={() => setDeleteTarget(row)}
-        >
-          <HiOutlineTrash className="h-4 w-4 shrink-0" aria-hidden />
-          {t("common.remove")}
-        </button>
-      ),
-    },
-  ];
-
   const activeProducts = products.filter((p) => p.isActive);
 
   return (
@@ -276,7 +199,7 @@ export default function AssignmentsPage() {
           <PageHeaderActions>
             <DownloadPdfButton
               onClick={handleExportPdf}
-              disabled={(!summary.length && !allocations.length) || loading}
+              disabled={!summary.length || loading}
             />
             <Button
               onClick={() => {
@@ -330,27 +253,6 @@ export default function AssignmentsPage() {
           ].join(" ")
         }
         searchPlaceholder={t("assignments.searchSummary")}
-      />
-
-      <h2 className="mb-3 mt-8 text-lg font-semibold text-black">
-        {t("assignments.historyTitle")}
-      </h2>
-      <DataTable
-        columns={allocationColumns}
-        data={allocations}
-        loading={loading}
-        rowKey={(row) => row.id}
-        emptyMessage={t("assignments.emptyHistory")}
-        pageSize={8}
-        getSearchText={(row) =>
-          [
-            row.deliveryGuyName,
-            row.productName,
-            row.quantity,
-            new Date(row.createdAt).toLocaleString(),
-          ].join(" ")
-        }
-        searchPlaceholder={t("assignments.searchHistory")}
       />
 
       <Modal
@@ -445,22 +347,6 @@ export default function AssignmentsPage() {
           </Button>
         </div>
       </Modal>
-
-      <ConfirmModal
-        open={deleteTarget !== null}
-        title={t("assignments.removeTitle")}
-        message={t("assignments.removeMessage", {
-          quantity: deleteTarget?.quantity ?? 0,
-          productName: deleteTarget?.productName ?? "",
-          deliveryGuyName: deleteTarget?.deliveryGuyName ?? "",
-        })}
-        confirmLabel={t("common.remove")}
-        cancelLabel={t("common.cancel")}
-        variant="danger"
-        loading={deleting}
-        onConfirm={() => void confirmDeleteAllocation()}
-        onCancel={() => setDeleteTarget(null)}
-      />
     </div>
   );
 }

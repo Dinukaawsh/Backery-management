@@ -20,9 +20,22 @@ import { LocaleToggle } from "@/components/LocaleToggle";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { useT } from "@/lib/i18n";
+import type { EnMessages } from "@/lib/i18n/messages/en";
 import { logout } from "@/lib/api";
 
-const navHrefs: Array<{ href: string; key: string; icon: IconType }> = [
+type NavChild = {
+  href: string;
+  key: keyof EnMessages;
+};
+
+type NavItem = {
+  href: string;
+  key: keyof EnMessages;
+  icon: IconType;
+  children?: NavChild[];
+};
+
+const navItems: NavItem[] = [
   { href: "/dashboard", key: "nav.dashboard", icon: HiOutlineChartBarSquare },
   { href: "/products", key: "nav.products", icon: HiOutlineCube },
   { href: "/sales", key: "nav.sales", icon: HiOutlineCurrencyDollar },
@@ -35,10 +48,36 @@ const navHrefs: Array<{ href: string; key: string; icon: IconType }> = [
     href: "/assignments",
     key: "nav.stockAssignments",
     icon: HiOutlineClipboardDocumentList,
+    children: [
+      { href: "/assignments/history", key: "nav.assignmentHistory" },
+    ],
   },
-  { href: "/shops", key: "nav.shops", icon: HiOutlineBuildingStorefront },
+  {
+    href: "/shops",
+    key: "nav.shops",
+    icon: HiOutlineBuildingStorefront,
+  },
   { href: "/settings", key: "nav.settings", icon: HiOutlineCog6Tooth },
 ];
+
+function isExactOrChildPath(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function resolveTitleKey(pathname: string): keyof EnMessages {
+  const flat: Array<{ href: string; key: keyof EnMessages }> = [];
+  for (const item of navItems) {
+    flat.push({ href: item.href, key: item.key });
+    for (const child of item.children ?? []) {
+      flat.push({ href: child.href, key: child.key });
+    }
+  }
+  flat.sort((a, b) => b.href.length - a.href.length);
+  return (
+    flat.find((item) => isExactOrChildPath(pathname, item.href))?.key ??
+    "nav.adminFallback"
+  );
+}
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -49,10 +88,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const currentPageKey =
-    navHrefs.find((item) => pathname.startsWith(item.href))?.key ??
-    "nav.adminFallback";
-  const currentPage = t(currentPageKey as Parameters<typeof t>[0]);
+  const currentPage = t(resolveTitleKey(pathname));
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -91,24 +127,77 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4">
-          <div className="flex flex-col gap-1">
-            {navHrefs.map((item) => {
-              const active = pathname.startsWith(item.href);
+          <div className="flex flex-col gap-1.5">
+            {navItems.map((item) => {
               const Icon = item.icon;
+              const hasChildren = (item.children?.length ?? 0) > 0;
+              const childActive = (item.children ?? []).some((child) =>
+                isExactOrChildPath(pathname, child.href),
+              );
+              const parentActive =
+                pathname === item.href ||
+                (isExactOrChildPath(pathname, item.href) && !childActive);
+              const groupOpen = parentActive || childActive;
+
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${
-                    active
-                      ? "bg-amber-600 text-white"
-                      : "text-black hover:bg-amber-100"
-                  }`}
-                >
-                  <Icon className="h-5 w-5 shrink-0" aria-hidden />
-                  {t(item.key as Parameters<typeof t>[0])}
-                </Link>
+                <div key={item.href} className="flex flex-col gap-1">
+                  <Link
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                      parentActive
+                        ? "bg-amber-600 text-white shadow-sm shadow-amber-700/20"
+                        : groupOpen
+                          ? "bg-amber-50 text-amber-900 ring-1 ring-amber-200"
+                          : "text-stone-800 hover:bg-amber-50"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                        parentActive
+                          ? "bg-white/15"
+                          : groupOpen
+                            ? "bg-amber-100"
+                            : "bg-amber-50"
+                      }`}
+                    >
+                      <Icon className="h-4.5 w-4.5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{t(item.key)}</span>
+                  </Link>
+
+                  {hasChildren ? (
+                    <div
+                      className={`relative ml-4 space-y-1 border-l-2 border-amber-200 pl-3 ${
+                        groupOpen ? "pb-1" : ""
+                      }`}
+                    >
+                      {(item.children ?? []).map((child) => {
+                        const active = isExactOrChildPath(pathname, child.href);
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={() => setSidebarOpen(false)}
+                            className={`relative flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] transition ${
+                              active
+                                ? "bg-amber-600 font-semibold text-white shadow-sm"
+                                : "text-stone-600 hover:bg-amber-50 hover:text-amber-900"
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                                active ? "bg-white" : "bg-amber-400"
+                              }`}
+                              aria-hidden
+                            />
+                            <span className="truncate">{t(child.key)}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
               );
             })}
           </div>

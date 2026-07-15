@@ -38,6 +38,19 @@ export type Shop = {
   addedByRole?: "admin" | "delivery" | null;
 };
 
+export type ShopDropSale = {
+  id: number;
+  saleDate: string;
+  totalAmount: string;
+  billPrinted: boolean;
+  items: Array<{
+    productId: number;
+    productName: string;
+    quantity: number;
+    unitPrice: string;
+  }>;
+};
+
 export type ShopDropSummary = {
   shopId: number;
   shopName: string;
@@ -48,12 +61,14 @@ export type ShopDropSummary = {
   dropDate: string;
   totalQuantity: number;
   totalAmount: string;
+  saleCount: number;
   items: Array<{
     productId: number;
     productName: string;
     quantity: number;
     unitPrice: string;
   }>;
+  sales: ShopDropSale[];
 };
 
 export type DeliveryGuy = {
@@ -398,12 +413,20 @@ export type AllocationRecord = {
 export async function fetchAllocations(params?: {
   date?: string;
   deliveryGuyId?: number;
+  historyDate?: string;
+  historyDateFrom?: string;
+  historyDateTo?: string;
 }) {
   const search = new URLSearchParams();
   if (params?.date) search.set("date", params.date);
   if (params?.deliveryGuyId) {
     search.set("deliveryGuyId", String(params.deliveryGuyId));
   }
+  if (params?.historyDate) search.set("historyDate", params.historyDate);
+  if (params?.historyDateFrom) {
+    search.set("historyDateFrom", params.historyDateFrom);
+  }
+  if (params?.historyDateTo) search.set("historyDateTo", params.historyDateTo);
   const query = search.toString();
   return apiFetch<{
     summary: AllocationSummary[];

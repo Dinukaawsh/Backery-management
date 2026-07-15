@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { HiOutlineTableCells } from "react-icons/hi2";
 
 import { BillModal } from "@/components/BillModal";
-
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -14,43 +13,75 @@ import {
   DownloadPdfButton,
   PageHeaderActions,
 } from "@/components/ui/DownloadPdfButton";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   fetchDeliveryGuys,
-  fetchSales,
+  fetchShopDrops,
   type DeliveryGuy,
-  type Sale,
+  type ShopDropSummary,
 } from "@/lib/api";
+import { formatCurrency } from "@/lib/currency";
 import { downloadCsv } from "@/lib/export-csv";
 import { buildSalesFilterSubtitle, downloadPdf } from "@/lib/export-pdf";
-import { formatCurrency } from "@/lib/currency";
 import { useT } from "@/lib/i18n";
+
+function formatDropItems(drop: ShopDropSummary) {
+  return drop.items
+    .map((item) => `${item.productName} × ${item.quantity}`)
+    .join(", ");
+}
+
+function todayDateString() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
 export default function SalesPage() {
   const toast = useToast();
   const t = useT();
   const { settings } = useBusinessSettings();
-  const [sales, setSales] = useState<Sale[]>([]);
+  const [groups, setGroups] = useState<ShopDropSummary[]>([]);
   const [deliveryGuys, setDeliveryGuys] = useState<DeliveryGuy[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [deliveryGuyId, setDeliveryGuyId] = useState("");
   const [todayOnly, setTodayOnly] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<ShopDropSummary | null>(
+    null,
+  );
   const [billSaleId, setBillSaleId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchSales({
-        dateFrom: dateFrom || undefined,
-        dateTo: dateTo || undefined,
+      const params: {
+        date?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        deliveryGuyId?: number;
+      } = {
         deliveryGuyId: deliveryGuyId ? Number(deliveryGuyId) : undefined,
-        today: todayOnly,
-      });
-      setSales(data);
+      };
+
+      if (todayOnly) {
+        params.date = todayDateString();
+      } else if (dateFrom && dateTo) {
+        params.dateFrom = dateFrom;
+        params.dateTo = dateTo;
+      } else if (dateFrom) {
+        params.date = dateFrom;
+      } else if (dateTo) {
+        params.dateTo = dateTo;
+      }
+
+      setGroups(await fetchShopDrops(params));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("sales.failedToLoad"));
     } finally {
@@ -70,8 +101,8 @@ export default function SalesPage() {
     const guy = deliveryGuys.find((item) => String(item.id) === deliveryGuyId);
     return buildSalesFilterSubtitle(
       {
-        dateFrom: dateFrom || undefined,
-        dateTo: dateTo || undefined,
+        dateFrom: todayOnly ? todayDateString() : dateFrom || undefined,
+        dateTo: todayOnly ? todayDateString() : dateTo || undefined,
         deliveryGuyName: guy?.name,
         todayOnly,
       },
@@ -80,13 +111,13 @@ export default function SalesPage() {
   }
 
   function handleExportPdf() {
-    if (!sales.length) {
+    if (!groups.length) {
       toast.error(t("sales.noExport"));
       return;
     }
 
-    const totalRevenue = sales.reduce(
-      (sum, sale) => sum + Number(sale.totalAmount),
+    const totalRevenue = groups.reduce(
+      (sum, group) => sum + Number(group.totalAmount),
       0,
     );
 
@@ -95,7 +126,7 @@ export default function SalesPage() {
       title: t("sales.pdfTitle"),
       subtitle: t("sales.pdfSubtitleStats", {
         filter: getFilterSubtitle(),
-        count: sales.length,
+        count: groups.length,
         total: formatCurrency(totalRevenue),
       }),
       business: settings,
@@ -105,15 +136,19 @@ export default function SalesPage() {
             t("sales.colDate"),
             t("sales.colShop"),
             t("sales.colDeliveryPartner"),
+            t("sales.colItemsDropped"),
+            t("sales.colTotalQty"),
             t("sales.colTotalRs"),
-            t("sales.colBillPrinted"),
+            t("sales.colSales"),
           ],
-          rows: sales.map((sale) => [
-            new Date(sale.saleDate).toLocaleString(),
-            sale.shopName,
-            sale.deliveryGuyName,
-            formatCurrency(sale.totalAmount),
-            sale.billPrinted ? t("common.yes") : t("common.no"),
+          rows: groups.map((group) => [
+            group.dropDate,
+            group.shopName,
+            group.deliveryGuyName,
+            formatDropItems(group),
+            String(group.totalQuantity),
+            formatCurrency(group.totalAmount),
+            String(group.saleCount),
           ]),
         },
       ],
@@ -122,7 +157,7 @@ export default function SalesPage() {
   }
 
   function handleExportCsv() {
-    if (!sales.length) {
+    if (!groups.length) {
       toast.error(t("sales.noExport"));
       return;
     }
@@ -132,47 +167,68 @@ export default function SalesPage() {
         t("sales.colDate"),
         t("sales.colShop"),
         t("sales.colDeliveryPartner"),
+        t("sales.colItemsDropped"),
+        t("sales.colTotalQty"),
         t("sales.colTotalRs"),
-        t("sales.colBillPrinted"),
+        t("sales.colSales"),
       ],
-      ...sales.map((sale) => [
-        new Date(sale.saleDate).toLocaleString(),
-        sale.shopName,
-        sale.deliveryGuyName,
-        formatCurrency(sale.totalAmount),
-        sale.billPrinted ? t("common.yes") : t("common.no"),
+      ...groups.map((group) => [
+        group.dropDate,
+        group.shopName,
+        group.deliveryGuyName,
+        formatDropItems(group),
+        String(group.totalQuantity),
+        formatCurrency(group.totalAmount),
+        String(group.saleCount),
       ]),
     ]);
     toast.success(t("sales.csvDownloadedToast"));
   }
 
-  const columns: Column<Sale>[] = [
+  const columns: Column<ShopDropSummary>[] = [
     {
       key: "date",
       header: t("sales.colDate"),
-      render: (s) => new Date(s.saleDate).toLocaleString(),
+      render: (g) => g.dropDate,
     },
-    { key: "shop", header: t("sales.colShop"), render: (s) => s.shopName },
+    { key: "shop", header: t("sales.colShop"), render: (g) => g.shopName },
     {
       key: "delivery",
       header: t("sales.colDeliveryPartner"),
-      render: (s) => s.deliveryGuyName,
+      render: (g) => g.deliveryGuyName,
+    },
+    {
+      key: "items",
+      header: t("sales.colItemsDropped"),
+      render: (g) => (
+        <span className="text-sm text-stone-700">{formatDropItems(g)}</span>
+      ),
+    },
+    {
+      key: "qty",
+      header: t("sales.colTotalQty"),
+      render: (g) => g.totalQuantity,
     },
     {
       key: "total",
       header: t("sales.colTotalRs"),
-      render: (s) => formatCurrency(s.totalAmount),
+      render: (g) => formatCurrency(g.totalAmount),
     },
     {
-      key: "bill",
+      key: "sales",
+      header: t("sales.colSales"),
+      render: (g) => t("sales.saleCount", { count: g.saleCount }),
+    },
+    {
+      key: "view",
       header: t("sales.colBill"),
-      render: (sale) => (
+      render: (group) => (
         <button
           type="button"
           className="text-amber-700 hover:underline"
-          onClick={() => setBillSaleId(sale.id)}
+          onClick={() => setSelectedGroup(group)}
         >
-          {sale.billPrinted ? t("sales.viewBill") : t("sales.printBill")}
+          {t("sales.view")}
         </button>
       ),
     },
@@ -187,12 +243,12 @@ export default function SalesPage() {
           <PageHeaderActions>
             <DownloadPdfButton
               onClick={handleExportPdf}
-              disabled={!sales.length || loading}
+              disabled={!groups.length || loading}
             />
             <Button
               variant="secondary"
               onClick={handleExportCsv}
-              disabled={!sales.length || loading}
+              disabled={!groups.length || loading}
             >
               <span className="inline-flex items-center gap-2">
                 <HiOutlineTableCells className="h-4 w-4" aria-hidden />
@@ -208,11 +264,13 @@ export default function SalesPage() {
           label={t("sales.from")}
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
+          disabled={todayOnly}
         />
         <DateInput
           label={t("sales.to")}
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
+          disabled={todayOnly}
         />
         <Select
           label={t("sales.deliveryPartner")}
@@ -238,24 +296,99 @@ export default function SalesPage() {
 
       <DataTable
         columns={columns}
-        data={sales}
+        data={groups}
         loading={loading}
-        rowKey={(row) => row.id}
+        rowKey={(row) =>
+          `${row.shopId}-${row.deliveryGuyId}-${row.dropDate}`
+        }
         emptyMessage={t("sales.empty")}
         pageSize={10}
-        getSearchText={(sale) =>
+        getSearchText={(group) =>
           [
-            sale.shopName,
-            sale.deliveryGuyName,
-            sale.totalAmount,
-            new Date(sale.saleDate).toLocaleString(),
-            sale.billPrinted ? "printed" : "pending",
+            group.shopName,
+            group.deliveryGuyName,
+            group.dropDate,
+            formatDropItems(group),
+            group.totalQuantity,
+            group.totalAmount,
+            group.saleCount,
           ].join(" ")
         }
         searchPlaceholder={t("sales.searchPlaceholder")}
       />
 
-      <BillModal saleId={billSaleId} onClose={() => setBillSaleId(null)} />
+      <Modal
+        open={selectedGroup !== null}
+        title={
+          selectedGroup
+            ? t("sales.groupTitle", {
+                shop: selectedGroup.shopName,
+                date: selectedGroup.dropDate,
+              })
+            : t("sales.title")
+        }
+        onClose={() => setSelectedGroup(null)}
+        size="lg"
+      >
+        {selectedGroup ? (
+          <div className="space-y-4">
+            <p className="text-sm text-stone-600">{t("sales.groupHint")}</p>
+            <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-stone-800">
+              <p>
+                <span className="font-medium">{t("sales.colDeliveryPartner")}: </span>
+                {selectedGroup.deliveryGuyName}
+              </p>
+              <p className="mt-1">
+                <span className="font-medium">{t("sales.colItemsDropped")}: </span>
+                {formatDropItems(selectedGroup)}
+              </p>
+              <p className="mt-1">
+                <span className="font-medium">{t("sales.colTotalRs")}: </span>
+                {formatCurrency(selectedGroup.totalAmount)}
+              </p>
+            </div>
+            <ul className="space-y-2">
+              {selectedGroup.sales.map((sale) => (
+                <li
+                  key={sale.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-100 px-4 py-3"
+                >
+                  <div>
+                    <p className="font-medium text-stone-900">
+                      {new Date(sale.saleDate).toLocaleString()}
+                    </p>
+                    <p className="text-sm text-stone-600">
+                      {sale.items
+                        .map((item) => `${item.productName} × ${item.quantity}`)
+                        .join(", ")}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-stone-800">
+                      {formatCurrency(sale.totalAmount)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-amber-700 hover:underline"
+                    onClick={() => setBillSaleId(sale.id)}
+                  >
+                    {sale.billPrinted
+                      ? t("sales.viewBill")
+                      : t("sales.printBill")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </Modal>
+
+      <BillModal
+        saleId={billSaleId}
+        onClose={() => {
+          setBillSaleId(null);
+          void load();
+        }}
+      />
     </div>
   );
 }

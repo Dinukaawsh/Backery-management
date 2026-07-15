@@ -2,13 +2,21 @@ import { and, eq, gte, inArray, lte } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { products, saleItems, sales, shops, users } from "@/db/schema";
-import { dayRange, parseDateInput, todayRange } from "@/lib/dates";
+import { dayRange, parseDateInput } from "@/lib/dates";
 
 export type ShopDropItem = {
   productId: number;
   productName: string;
   quantity: number;
   unitPrice: string;
+};
+
+export type ShopDropSale = {
+  id: number;
+  saleDate: string;
+  totalAmount: string;
+  billPrinted: boolean;
+  items: ShopDropItem[];
 };
 
 export type ShopDropSummary = {
@@ -21,7 +29,9 @@ export type ShopDropSummary = {
   dropDate: string;
   totalQuantity: number;
   totalAmount: string;
+  saleCount: number;
   items: ShopDropItem[];
+  sales: ShopDropSale[];
 };
 
 function toDayKey(date: Date) {
@@ -35,34 +45,31 @@ export async function getShopDrops(params: {
   deliveryGuyId?: number;
   shopId?: number;
 }) {
-  let start: Date;
-  let end: Date;
+  const conditions = [];
 
   if (params.date) {
     const parsed = parseDateInput(params.date);
     if (!parsed) {
       throw new Error("Invalid date");
     }
-    ({ start, end } = dayRange(parsed));
+    const { start, end } = dayRange(parsed);
+    conditions.push(gte(sales.saleDate, start), lte(sales.saleDate, end));
   } else if (params.dateFrom || params.dateTo) {
     const from = params.dateFrom ? parseDateInput(params.dateFrom) : null;
     const to = params.dateTo ? parseDateInput(params.dateTo) : null;
     if (params.dateFrom && !from) throw new Error("Invalid dateFrom");
     if (params.dateTo && !to) throw new Error("Invalid dateTo");
 
-    start = from ?? new Date(0);
-    start.setHours(0, 0, 0, 0);
-    if (to) {
-      ({ end } = dayRange(to));
-    } else {
-      end = new Date();
-      end.setHours(23, 59, 59, 999);
+    if (from) {
+      const { start } = dayRange(from);
+      conditions.push(gte(sales.saleDate, start));
     }
-  } else {
-    ({ start, end } = todayRange());
+    if (to) {
+      const { end } = dayRange(to);
+      conditions.push(lte(sales.saleDate, end));
+    }
   }
-
-  const conditions = [gte(sales.saleDate, start), lte(sales.saleDate, end)];
+  // No date filters → return all drops.
 
   if (params.deliveryGuyId) {
     conditions.push(eq(sales.deliveryGuyId, params.deliveryGuyId));
@@ -82,11 +89,12 @@ export async function getShopDrops(params: {
       deliveryGuyName: users.name,
       saleDate: sales.saleDate,
       totalAmount: sales.totalAmount,
+      billPrinted: sales.billPrinted,
     })
     .from(sales)
     .innerJoin(shops, eq(sales.shopId, shops.id))
     .innerJoin(users, eq(sales.deliveryGuyId, users.id))
-    .where(and(...conditions))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(sales.saleDate);
 
   if (salesRows.length === 0) {
@@ -125,6 +133,13 @@ export async function getShopDrops(params: {
     const key = `${sale.shopId}-${sale.deliveryGuyId}-${dropDate}`;
     const saleItemsList = itemsBySale.get(sale.saleId) ?? [];
     const saleQty = saleItemsList.reduce((sum, item) => sum + item.quantity, 0);
+    const saleEntry: ShopDropSale = {
+      id: sale.saleId,
+      saleDate: new Date(sale.saleDate).toISOString(),
+      totalAmount: sale.totalAmount,
+      billPrinted: sale.billPrinted,
+      items: [...saleItemsList],
+    };
 
     const existing = grouped.get(key);
     if (!existing) {
@@ -138,7 +153,9 @@ export async function getShopDrops(params: {
         dropDate,
         totalQuantity: saleQty,
         totalAmount: sale.totalAmount,
+        saleCount: 1,
         items: [...saleItemsList],
+        sales: [saleEntry],
       });
       continue;
     }
@@ -147,6 +164,8 @@ export async function getShopDrops(params: {
     existing.totalAmount = String(
       Number(existing.totalAmount) + Number(sale.totalAmount),
     );
+    existing.saleCount += 1;
+    existing.sales.push(saleEntry);
 
     for (const item of saleItemsList) {
       const match = existing.items.find(

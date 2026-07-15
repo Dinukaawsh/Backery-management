@@ -13,7 +13,6 @@ import {
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { Button } from "@/components/ui/Button";
 import { Column, DataTable } from "@/components/ui/DataTable";
-import { DateInput } from "@/components/ui/DateInput";
 import {
   DownloadPdfButton,
   PageHeaderActions,
@@ -28,13 +27,9 @@ import { useToast } from "@/components/ui/ToastProvider";
 import {
   createShop,
   deleteShop,
-  fetchDeliveryGuys,
-  fetchShopDrops,
   fetchShops,
   updateShop,
-  type DeliveryGuy,
   type Shop,
-  type ShopDropSummary,
 } from "@/lib/api";
 import { downloadPdf } from "@/lib/export-pdf";
 import { formatCurrency } from "@/lib/currency";
@@ -67,21 +62,12 @@ function formatAddedBy(shop: Shop, t: TFunction) {
     : shop.addedByName;
 }
 
-function formatDropItems(drop: ShopDropSummary) {
-  return drop.items
-    .map((item) => `${item.productName} × ${item.quantity}`)
-    .join(", ");
-}
-
 export default function ShopsPage() {
   const toast = useToast();
   const t = useT();
   const { settings } = useBusinessSettings();
   const [shops, setShops] = useState<Shop[]>([]);
-  const [drops, setDrops] = useState<ShopDropSummary[]>([]);
-  const [deliveryGuys, setDeliveryGuys] = useState<DeliveryGuy[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dropsLoading, setDropsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Shop | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -89,11 +75,6 @@ export default function ShopsPage() {
   const [disableTarget, setDisableTarget] = useState<Shop | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Shop | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [dropDateFrom, setDropDateFrom] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
-  const [dropDateTo, setDropDateTo] = useState("");
-  const [deliveryGuyId, setDeliveryGuyId] = useState("");
   const [statusTab, setStatusTab] = useState<"active" | "inactive">("active");
   const [routeFilter, setRouteFilter] = useState("");
 
@@ -108,44 +89,9 @@ export default function ShopsPage() {
     }
   }, [toast, t]);
 
-  const loadDrops = useCallback(async () => {
-    setDropsLoading(true);
-    try {
-      const params: {
-        date?: string;
-        dateFrom?: string;
-        dateTo?: string;
-        deliveryGuyId?: number;
-      } = {
-        deliveryGuyId: deliveryGuyId ? Number(deliveryGuyId) : undefined,
-      };
-
-      if (dropDateTo && dropDateTo !== dropDateFrom) {
-        params.dateFrom = dropDateFrom;
-        params.dateTo = dropDateTo;
-      } else {
-        params.date = dropDateFrom;
-      }
-
-      const data = await fetchShopDrops(params);
-      setDrops(data);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("shops.failedToLoadDrops"),
-      );
-    } finally {
-      setDropsLoading(false);
-    }
-  }, [dropDateFrom, dropDateTo, deliveryGuyId, toast, t]);
-
   useEffect(() => {
     void loadShops();
-    void fetchDeliveryGuys().then(setDeliveryGuys).catch(() => undefined);
   }, [loadShops]);
-
-  useEffect(() => {
-    void loadDrops();
-  }, [loadDrops]);
 
   function openCreate() {
     setEditing(null);
@@ -228,28 +174,15 @@ export default function ShopsPage() {
     }
   }
 
-  function dropPeriodLabel() {
-    if (dropDateTo && dropDateTo !== dropDateFrom) {
-      return t("shops.periodRange", { from: dropDateFrom, to: dropDateTo });
-    }
-    return dropDateFrom;
-  }
-
   function handleExportPdf() {
-    if (!shops.length && !drops.length) {
+    if (!shops.length) {
       toast.error(t("shops.noExport"));
       return;
     }
 
-    const period = dropPeriodLabel();
-    const subtitle = deliveryGuyId
-      ? t("shops.pdfSubtitleFiltered", { period })
-      : t("shops.pdfSubtitle", { period });
-
     downloadPdf({
-      filename: "shops-and-drops",
+      filename: "shops",
       title: t("shops.pdfTitle"),
-      subtitle,
       business: settings,
       sections: [
         {
@@ -273,25 +206,6 @@ export default function ShopsPage() {
             shop.isActive ? t("common.active") : t("common.disabled"),
             formatAddedBy(shop, t),
             new Date(shop.createdAt).toLocaleDateString(),
-          ]),
-        },
-        {
-          heading: t("shops.pdfDropsHeading", { period: dropPeriodLabel() }),
-          headers: [
-            t("shops.colDate"),
-            t("shops.colShop"),
-            t("shops.deliveryPartner"),
-            t("shops.colItemsDropped"),
-            t("shops.colTotalQty"),
-            t("shops.colAmountRs"),
-          ],
-          rows: drops.map((drop) => [
-            drop.dropDate,
-            drop.shopName,
-            drop.deliveryGuyName,
-            formatDropItems(drop),
-            String(drop.totalQuantity),
-            formatCurrency(drop.totalAmount),
           ]),
         },
       ],
@@ -393,39 +307,8 @@ export default function ShopsPage() {
     },
   ];
 
-  const dropColumns: Column<ShopDropSummary>[] = [
-    {
-      key: "date",
-      header: t("shops.colDate"),
-      render: (d) => d.dropDate,
-    },
-    { key: "shop", header: t("shops.colShop"), render: (d) => d.shopName },
-    {
-      key: "delivery",
-      header: t("shops.deliveryPartner"),
-      render: (d) => d.deliveryGuyName,
-    },
-    {
-      key: "items",
-      header: t("shops.colItemsDropped"),
-      render: (d) => (
-        <span className="text-sm text-stone-700">{formatDropItems(d)}</span>
-      ),
-    },
-    {
-      key: "qty",
-      header: t("shops.colTotalQty"),
-      render: (d) => d.totalQuantity,
-    },
-    {
-      key: "amount",
-      header: t("shops.colAmountRs"),
-      render: (d) => formatCurrency(d.totalAmount),
-    },
-  ];
-
   return (
-    <div className="space-y-8">
+    <div>
       <PageHeader
         title={t("shops.title")}
         description={t("shops.description")}
@@ -433,7 +316,7 @@ export default function ShopsPage() {
           <PageHeaderActions>
             <DownloadPdfButton
               onClick={handleExportPdf}
-              disabled={(!shops.length && !drops.length) || loading}
+              disabled={!shops.length || loading}
             />
             <Button onClick={openCreate}>
               <span className="inline-flex items-center gap-2">
@@ -445,118 +328,59 @@ export default function ShopsPage() {
         }
       />
 
-      <section>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-black">
-            <HiOutlineBuildingStorefront className="h-5 w-5 text-amber-700" />
-            {t("shops.allShops")}
-          </h2>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <StatusTabs
-              value={statusTab}
-              onChange={setStatusTab}
-              activeCount={activeShops.length}
-              inactiveCount={inactiveShops.length}
-            />
-            <Select
-              label={t("shops.filterByRoute")}
-              value={routeFilter}
-              onChange={(e) => setRouteFilter(e.target.value)}
-              className="sm:w-56"
-            >
-              <option value="">{t("shops.allRoutes")}</option>
-              {routeOptions.map((route) => (
-                <option key={route} value={route}>
-                  {route}
-                </option>
-              ))}
-            </Select>
-          </div>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-black">
+          <HiOutlineBuildingStorefront className="h-5 w-5 text-amber-700" />
+          {t("shops.allShops")}
+        </h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <StatusTabs
+            value={statusTab}
+            onChange={setStatusTab}
+            activeCount={activeShops.length}
+            inactiveCount={inactiveShops.length}
+          />
+          <Select
+            label={t("shops.filterByRoute")}
+            value={routeFilter}
+            onChange={(e) => setRouteFilter(e.target.value)}
+            className="sm:w-56"
+          >
+            <option value="">{t("shops.allRoutes")}</option>
+            {routeOptions.map((route) => (
+              <option key={route} value={route}>
+                {route}
+              </option>
+            ))}
+          </Select>
         </div>
-        <DataTable
-          columns={shopColumns}
-          data={filteredShops}
-          loading={loading}
-          rowKey={(row) => row.id}
-          emptyMessage={
-            statusTab === "active"
-              ? t("shops.emptyActive")
-              : t("shops.emptyInactive")
-          }
-          getSearchText={(shop) =>
-            [
-              shop.name,
-              shop.route,
-              shop.outstandingBalance,
-              shop.ownerName,
-              shop.address,
-              shop.phone,
-              shop.addedByName,
-              shop.isActive ? "active" : "disabled",
-            ]
-              .filter(Boolean)
-              .join(" ")
-          }
-          searchPlaceholder={t("shops.searchShops")}
-        />
-      </section>
-
-      <section>
-        <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-black">{t("shops.shopDrops")}</h2>
-            <p className="text-sm text-stone-600">
-              {t("shops.shopDropsDescription")}
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:w-[48rem]">
-            <DateInput
-              label={t("shops.fromDate")}
-              value={dropDateFrom}
-              onChange={(e) => setDropDateFrom(e.target.value)}
-            />
-            <DateInput
-              label={t("shops.toDateOptional")}
-              value={dropDateTo}
-              onChange={(e) => setDropDateTo(e.target.value)}
-            />
-            <Select
-              label={t("shops.deliveryPartner")}
-              value={deliveryGuyId}
-              onChange={(e) => setDeliveryGuyId(e.target.value)}
-            >
-              <option value="">{t("shops.allPartners")}</option>
-              {deliveryGuys.map((guy) => (
-                <option key={guy.id} value={guy.id}>
-                  {guy.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-        </div>
-
-        <DataTable
-          columns={dropColumns}
-          data={drops}
-          loading={dropsLoading}
-          rowKey={(row) =>
-            `${row.shopId}-${row.deliveryGuyId}-${row.dropDate}`
-          }
-          emptyMessage={t("shops.emptyDrops")}
-          pageSize={10}
-          getSearchText={(drop) =>
-            [
-              drop.shopName,
-              drop.deliveryGuyName,
-              drop.dropDate,
-              formatDropItems(drop),
-              drop.totalQuantity,
-              drop.totalAmount,
-            ].join(" ")
-          }
-          searchPlaceholder={t("shops.searchDrops")}
-        />
-      </section>
+      </div>
+      <DataTable
+        columns={shopColumns}
+        data={filteredShops}
+        loading={loading}
+        rowKey={(row) => row.id}
+        emptyMessage={
+          statusTab === "active"
+            ? t("shops.emptyActive")
+            : t("shops.emptyInactive")
+        }
+        getSearchText={(shop) =>
+          [
+            shop.name,
+            shop.route,
+            shop.outstandingBalance,
+            shop.ownerName,
+            shop.address,
+            shop.phone,
+            shop.addedByName,
+            shop.isActive ? "active" : "disabled",
+          ]
+            .filter(Boolean)
+            .join(" ")
+        }
+        searchPlaceholder={t("shops.searchShops")}
+      />
 
       <Modal
         open={modalOpen}

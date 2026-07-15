@@ -22,6 +22,10 @@ export async function GET(request: NextRequest) {
     const date = parseDateInput(dateInput);
     if (!date) return corsResponse({ error: "Invalid date" }, 400);
 
+    const historyDate = searchParams.get("historyDate") ?? undefined;
+    const historyDateFrom = searchParams.get("historyDateFrom") ?? undefined;
+    const historyDateTo = searchParams.get("historyDateTo") ?? undefined;
+
     let deliveryGuyId: number | undefined;
     if (auth.session.role === "delivery") {
       deliveryGuyId = auth.session.id;
@@ -38,13 +42,41 @@ export async function GET(request: NextRequest) {
     const summary = await getAssignmentSummary(date, deliveryGuyId);
 
     if (auth.session.role === "admin") {
-      const { start, end } = dayRange(date);
-      const conditions = [
-        gte(deliveryAllocations.allocationDate, start),
-        lt(deliveryAllocations.allocationDate, end),
-      ];
+      // History: all rows by default; optional history date / range + partner.
+      const historyConditions = [];
       if (deliveryGuyId) {
-        conditions.push(eq(deliveryAllocations.deliveryGuyId, deliveryGuyId));
+        historyConditions.push(
+          eq(deliveryAllocations.deliveryGuyId, deliveryGuyId),
+        );
+      }
+
+      if (historyDate) {
+        const parsed = parseDateInput(historyDate);
+        if (!parsed) return corsResponse({ error: "Invalid historyDate" }, 400);
+        const { start, end } = dayRange(parsed);
+        historyConditions.push(
+          gte(deliveryAllocations.allocationDate, start),
+          lt(deliveryAllocations.allocationDate, end),
+        );
+      } else if (historyDateFrom || historyDateTo) {
+        if (historyDateFrom) {
+          const from = parseDateInput(historyDateFrom);
+          if (!from) {
+            return corsResponse({ error: "Invalid historyDateFrom" }, 400);
+          }
+          historyConditions.push(
+            gte(deliveryAllocations.allocationDate, dayRange(from).start),
+          );
+        }
+        if (historyDateTo) {
+          const to = parseDateInput(historyDateTo);
+          if (!to) {
+            return corsResponse({ error: "Invalid historyDateTo" }, 400);
+          }
+          historyConditions.push(
+            lt(deliveryAllocations.allocationDate, dayRange(to).end),
+          );
+        }
       }
 
       const rows = await getDb()
@@ -61,7 +93,9 @@ export async function GET(request: NextRequest) {
         .from(deliveryAllocations)
         .innerJoin(users, eq(deliveryAllocations.deliveryGuyId, users.id))
         .innerJoin(products, eq(deliveryAllocations.productId, products.id))
-        .where(and(...conditions))
+        .where(
+          historyConditions.length > 0 ? and(...historyConditions) : undefined,
+        )
         .orderBy(desc(deliveryAllocations.createdAt));
 
       return corsResponse({ summary, allocations: rows });

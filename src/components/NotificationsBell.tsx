@@ -31,6 +31,7 @@ export function NotificationsBell() {
   const [items, setItems] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -59,6 +60,29 @@ export function NotificationsBell() {
     }
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [open]);
+
+  // Keep the dropdown inside the viewport on narrow mobile screens.
+  useEffect(() => {
+    if (!open) return;
+
+    function placePanel() {
+      const panel = panelRef.current;
+      if (!panel) return;
+      panel.style.transform = "";
+      const rect = panel.getBoundingClientRect();
+      const pad = 12;
+      let shift = 0;
+      if (rect.left < pad) shift += pad - rect.left;
+      if (rect.right + shift > window.innerWidth - pad) {
+        shift -= rect.right + shift - (window.innerWidth - pad);
+      }
+      panel.style.transform = shift ? `translateX(${shift}px)` : "";
+    }
+
+    placePanel();
+    window.addEventListener("resize", placePanel);
+    return () => window.removeEventListener("resize", placePanel);
+  }, [open, items]);
 
   async function handleMarkAllRead() {
     try {
@@ -89,7 +113,10 @@ export function NotificationsBell() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-amber-200 bg-white shadow-lg shadow-amber-900/10 sm:w-96">
+        <div
+          ref={panelRef}
+          className="absolute right-0 z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-amber-200 bg-white shadow-lg shadow-amber-900/10"
+        >
           <div className="flex items-center justify-between border-b border-amber-100 px-3 py-2">
             <p className="text-sm font-semibold text-stone-900">
               {t("nav.notifications")}

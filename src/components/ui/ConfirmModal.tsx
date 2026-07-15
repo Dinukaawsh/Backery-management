@@ -39,7 +39,7 @@ export function ConfirmModal({
             {cancelLabel ?? t("common.cancel")}
           </Button>
           <Button
-            variant={variant === "danger" ? "danger" : "primary"}
+            variant={variant}
             fullWidth
             onClick={onConfirm}
             disabled={loading}

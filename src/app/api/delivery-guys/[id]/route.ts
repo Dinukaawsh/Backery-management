@@ -34,6 +34,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         email: users.email,
         name: users.name,
         phone: users.phone,
+        imageUrl: users.imageUrl,
         isActive: users.isActive,
         createdAt: users.createdAt,
         role: users.role,
@@ -68,6 +69,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       name: string;
       email: string;
       phone: string | null;
+      imageUrl: string | null;
       isActive: boolean;
       passwordHash: string;
     }> = {};
@@ -80,6 +82,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
     if (typeof body.phone === "string") {
       updates.phone = body.phone.trim();
+    }
+    if (body.imageUrl === null) {
+      updates.imageUrl = null;
+    } else if (typeof body.imageUrl === "string") {
+      updates.imageUrl = body.imageUrl.trim() || null;
     }
     if (typeof body.isActive === "boolean") {
       updates.isActive = body.isActive;
@@ -113,6 +120,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         email: users.email,
         name: users.name,
         phone: users.phone,
+        imageUrl: users.imageUrl,
         isActive: users.isActive,
         createdAt: users.createdAt,
         role: users.role,

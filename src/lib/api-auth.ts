@@ -28,8 +28,22 @@ export async function requireAuth(
     .where(eq(users.id, session.id))
     .limit(1);
 
-  if (!user || !user.isActive) {
+  if (!user) {
     return { error: corsResponse({ error: "Unauthorized" }, 401), session: null };
+  }
+
+  if (!user.isActive) {
+    return {
+      error: corsResponse(
+        {
+          error: "ACCOUNT_SUSPENDED",
+          code: "ACCOUNT_SUSPENDED",
+          message: "Your account is currently suspended",
+        },
+        403,
+      ),
+      session: null,
+    };
   }
 
   const activeSession: SessionUser = {

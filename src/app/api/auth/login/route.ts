@@ -32,8 +32,19 @@ export async function POST(request: NextRequest) {
       .where(eq(users.email, email))
       .limit(1);
 
-    if (!user || !user.isActive) {
+    if (!user) {
       return corsResponse({ error: "Invalid credentials" }, 401);
+    }
+
+    if (!user.isActive) {
+      return corsResponse(
+        {
+          error: "ACCOUNT_SUSPENDED",
+          code: "ACCOUNT_SUSPENDED",
+          message: "Your account is currently suspended",
+        },
+        403,
+      );
     }
 
     const valid = await verifyPassword(password, user.passwordHash);

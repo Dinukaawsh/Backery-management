@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       role: users.role,
       phone: users.phone,
       imageUrl: users.imageUrl,
+      isActive: users.isActive,
     })
     .from(users)
     .where(eq(users.id, session.id))
@@ -32,6 +33,17 @@ export async function GET(request: NextRequest) {
 
   if (!user) {
     return corsResponse({ error: "Unauthorized" }, 401);
+  }
+
+  if (!user.isActive) {
+    return corsResponse(
+      {
+        error: "ACCOUNT_SUSPENDED",
+        code: "ACCOUNT_SUSPENDED",
+        message: "Your account is currently suspended",
+      },
+      403,
+    );
   }
 
   return corsResponse({

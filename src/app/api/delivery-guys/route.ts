@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         email: users.email,
         name: users.name,
         phone: users.phone,
+        imageUrl: users.imageUrl,
         isActive: users.isActive,
         createdAt: users.createdAt,
       })

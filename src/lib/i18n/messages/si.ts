@@ -281,6 +281,7 @@ export const si: { [K in keyof EnMessages]: string } = {
   "deliveryGuys.colRegistered": "ලියාපදිංචි දිනය",
   "deliveryGuys.colActions": "ක්‍රියා",
   "deliveryGuys.formFullName": "සම්පූර්ණ නම",
+  "deliveryGuys.formPhoto": "පැතිකඩ ඡායාරූපය",
   "deliveryGuys.formEmail": "විද්‍යුත් තැපෑල",
   "deliveryGuys.formPhone": "දුරකථනය",
   "deliveryGuys.formPassword": "මුරපදය",

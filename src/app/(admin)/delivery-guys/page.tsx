@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/DownloadPdfButton";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Column, DataTable } from "@/components/ui/DataTable";
+import { ImageUpload } from "@/components/ui/ImageUpload";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -37,6 +38,7 @@ const emptyForm = {
   email: "",
   phone: "",
   password: "",
+  imageUrl: null as string | null,
 };
 
 export default function DeliveryGuysPage() {
@@ -82,6 +84,7 @@ export default function DeliveryGuysPage() {
       email: guy.email,
       phone: guy.phone ?? "",
       password: "",
+      imageUrl: guy.imageUrl ?? null,
     });
     setModalOpen(true);
   }
@@ -95,10 +98,16 @@ export default function DeliveryGuysPage() {
           email: form.email,
           phone: form.phone,
           password: form.password || undefined,
+          imageUrl: form.imageUrl,
         });
         toast.success(t("deliveryGuys.updatedToast"));
       } else {
-        await createDeliveryGuy(form);
+        await createDeliveryGuy({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          password: form.password,
+        });
         toast.success(t("deliveryGuys.registeredToast"));
       }
       setModalOpen(false);
@@ -318,6 +327,13 @@ export default function DeliveryGuysPage() {
         }
       >
         <div className="grid gap-4">
+          {editing ? (
+            <ImageUpload
+              label={t("deliveryGuys.formPhoto")}
+              value={form.imageUrl}
+              onChange={(url) => setForm({ ...form, imageUrl: url })}
+            />
+          ) : null}
           <Input
             label={t("deliveryGuys.formFullName")}
             required

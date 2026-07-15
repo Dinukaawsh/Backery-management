@@ -278,6 +278,7 @@ export const en = {
   "deliveryGuys.colRegistered": "Registered",
   "deliveryGuys.colActions": "Actions",
   "deliveryGuys.formFullName": "Full name",
+  "deliveryGuys.formPhoto": "Profile photo",
   "deliveryGuys.formEmail": "Email",
   "deliveryGuys.formPhone": "Phone",
   "deliveryGuys.formPassword": "Password",

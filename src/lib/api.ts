@@ -76,6 +76,7 @@ export type DeliveryGuy = {
   email: string;
   name: string;
   phone: string | null;
+  imageUrl?: string | null;
   isActive: boolean;
   createdAt: string;
 };
@@ -372,6 +373,7 @@ export async function updateDeliveryGuy(
     email: string;
     phone: string;
     password: string;
+    imageUrl: string | null;
     isActive: boolean;
   }>,
 ) {

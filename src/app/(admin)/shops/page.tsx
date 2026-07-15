@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  HiOutlineBuildingStorefront,
   HiOutlineCheckCircle,
   HiOutlineNoSymbol,
   HiOutlinePencilSquare,
@@ -328,32 +327,26 @@ export default function ShopsPage() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-black">
-          <HiOutlineBuildingStorefront className="h-5 w-5 text-amber-700" />
-          {t("shops.allShops")}
-        </h2>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <StatusTabs
-            value={statusTab}
-            onChange={setStatusTab}
-            activeCount={activeShops.length}
-            inactiveCount={inactiveShops.length}
-          />
-          <Select
-            label={t("shops.filterByRoute")}
-            value={routeFilter}
-            onChange={(e) => setRouteFilter(e.target.value)}
-            className="sm:w-56"
-          >
-            <option value="">{t("shops.allRoutes")}</option>
-            {routeOptions.map((route) => (
-              <option key={route} value={route}>
-                {route}
-              </option>
-            ))}
-          </Select>
-        </div>
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <StatusTabs
+          value={statusTab}
+          onChange={setStatusTab}
+          activeCount={activeShops.length}
+          inactiveCount={inactiveShops.length}
+        />
+        <Select
+          label={t("shops.filterByRoute")}
+          value={routeFilter}
+          onChange={(e) => setRouteFilter(e.target.value)}
+          className="lg:w-56"
+        >
+          <option value="">{t("shops.allRoutes")}</option>
+          {routeOptions.map((route) => (
+            <option key={route} value={route}>
+              {route}
+            </option>
+          ))}
+        </Select>
       </div>
       <DataTable
         columns={shopColumns}

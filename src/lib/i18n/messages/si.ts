@@ -524,6 +524,7 @@ export const si: { [K in keyof EnMessages]: string } = {
   "locale.switchAria": "භාෂාව මාරු කරන්න",
 
   "splash.loading": "පූරණය වෙමින්...",
+  "splash.phone": "+94 71 8780 945",
   "splash.copyright":
     "Created by DDRsolutions © {year}. All rights reserved.",
 

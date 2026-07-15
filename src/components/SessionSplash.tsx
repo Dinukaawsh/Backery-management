@@ -83,9 +83,17 @@ export function SessionSplash({ children }: { children: React.ReactNode }) {
               <p className="text-sm text-stone-600">{t("splash.loading")}</p>
             </div>
           </div>
-          <p className="px-6 pb-8 text-center text-xs text-stone-500">
-            {t("splash.copyright", { year: new Date().getFullYear() })}
-          </p>
+          <div className="space-y-1 px-6 pb-8 text-center text-xs text-stone-500">
+            <p>
+              {t("splash.copyright", { year: new Date().getFullYear() })}
+            </p>
+            <a
+              href="tel:+94718780945"
+              className="inline-block text-stone-500 hover:text-amber-800"
+            >
+              {t("splash.phone")}
+            </a>
+          </div>
         </div>
       ) : null}
     </>

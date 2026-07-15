@@ -520,6 +520,7 @@ export const en = {
   "locale.switchAria": "Switch language",
 
   "splash.loading": "Loading...",
+  "splash.phone": "+94 71 8780 945",
   "splash.copyright":
     "Created by DDRsolutions © {year}. All rights reserved.",
 

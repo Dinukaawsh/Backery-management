@@ -259,6 +259,7 @@ export const si: { [K in keyof EnMessages]: string } = {
   "calendar.showMore": "+තවත් {count}",
   "calendar.noEvents": "මෙම පරාසයේ විකුණුම් නැත",
   "calendar.dayEvent": "විකුණුම් {count} · {total}",
+  "calendar.saleEvent": "{shop} · {total}",
   "calendar.totalSales": "විකුණුම්",
   "calendar.saleCountLabel": "විකුණුම් {count}",
   "calendar.dayTotal": "දින මුළු එකතුව",

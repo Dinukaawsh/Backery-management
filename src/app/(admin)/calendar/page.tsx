@@ -18,6 +18,7 @@ import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   fetchShopDrops,
+  type ShopDropSale,
   type ShopDropSummary,
 } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency";
@@ -39,19 +40,59 @@ type DayBucket = {
   groups: ShopDropSummary[];
 };
 
+type DayEventResource = {
+  kind: "day";
+  bucket: DayBucket;
+};
+
+type SaleEventResource = {
+  kind: "sale";
+  dateKey: string;
+  sale: ShopDropSale;
+  shopName: string;
+  deliveryGuyName: string;
+};
+
 type CalendarEvent = {
   id: string;
   title: string;
   start: Date;
   end: Date;
-  allDay: true;
-  resource: DayBucket;
+  allDay: boolean;
+  resource: DayEventResource | SaleEventResource;
 };
 
 /** Local noon for a YYYY-MM-DD civil date (matches calendar cells worldwide). */
 function civilNoon(dateKey: string) {
   const [year, month, day] = dateKey.split("-").map(Number);
   return new Date(year, month - 1, day, 12, 0, 0);
+}
+
+/** Map a sale timestamp to civil wall-clock in Sri Lanka for time-grid views. */
+function saleCivilDate(iso: string) {
+  const instant = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BUSINESS_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(instant);
+
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value ?? 0);
+
+  return new Date(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour") === 24 ? 0 : get("hour"),
+    get("minute"),
+    get("second"),
+  );
 }
 
 const localizer = dateFnsLocalizer({
@@ -86,8 +127,6 @@ function daysInMonth(date: Date) {
 
 /** Fetch window so each view includes every sale for that Colombo period. */
 function rangeForView(date: Date, view: View) {
-  // Anchor ranges on Sri Lanka "today"/selected civil key via localDateString of the date
-  // when possible; for navigated civil dates use dayKey.
   const anchorKey = dayKey(date);
 
   if (view === "day") {
@@ -121,6 +160,10 @@ function buildYearOptions(centerYear: number) {
   }
   return years;
 }
+
+const DAY_GRID_MIN = new Date(1970, 0, 1, 0, 0, 0);
+const DAY_GRID_MAX = new Date(1970, 0, 1, 23, 59, 0);
+const SALE_SLOT_MS = 30 * 60 * 1000;
 
 export default function CalendarPage() {
   const t = useT();
@@ -188,21 +231,50 @@ export default function CalendarPage() {
   }, [groups]);
 
   const events = useMemo<CalendarEvent[]>(() => {
+    const timedViews = view === "day" || view === "week";
+
+    if (timedViews) {
+      const timed: CalendarEvent[] = [];
+      for (const group of groups) {
+        for (const sale of group.sales) {
+          const start = saleCivilDate(sale.saleDate);
+          timed.push({
+            id: `sale-${sale.id}`,
+            title: t("calendar.saleEvent", {
+              shop: group.shopName,
+              total: formatCurrency(sale.totalAmount),
+            }),
+            start,
+            end: new Date(start.getTime() + SALE_SLOT_MS),
+            allDay: false,
+            resource: {
+              kind: "sale",
+              dateKey: group.dropDate,
+              sale,
+              shopName: group.shopName,
+              deliveryGuyName: group.deliveryGuyName,
+            },
+          });
+        }
+      }
+      return timed.sort((a, b) => a.start.getTime() - b.start.getTime());
+    }
+
     return Array.from(bucketsByDay.values()).map((bucket) => {
       const start = civilNoon(bucket.dateKey);
       return {
-        id: bucket.dateKey,
+        id: `day-${bucket.dateKey}`,
         title: t("calendar.dayEvent", {
           count: bucket.saleCount,
           total: formatCurrency(bucket.totalAmount),
         }),
         start,
         end: start,
-        allDay: true as const,
-        resource: bucket,
+        allDay: true,
+        resource: { kind: "day" as const, bucket },
       };
     });
-  }, [bucketsByDay, t]);
+  }, [bucketsByDay, groups, t, view]);
 
   const selectedBucket = selectedDay
     ? (bucketsByDay.get(selectedDay) ?? {
@@ -212,6 +284,13 @@ export default function CalendarPage() {
         groups: [],
       })
     : null;
+
+  const scrollToTime = useMemo(() => {
+    if (view !== "day" && view !== "week") return undefined;
+    const first = events.find((event) => !event.allDay);
+    if (first) return first.start;
+    return new Date(1970, 0, 1, 8, 0, 0);
+  }, [events, view]);
 
   const messages = useMemo(
     () => ({
@@ -290,6 +369,14 @@ export default function CalendarPage() {
     setSelectedDay(dayKey(date));
   }
 
+  function handleSelectEvent(event: CalendarEvent) {
+    if (event.resource.kind === "sale") {
+      setBillSaleId(event.resource.sale.id);
+      return;
+    }
+    openDay(event.start);
+  }
+
   function jumpToDate(value: string) {
     if (!value) return;
     if (!parseDateInput(value)) return;
@@ -365,12 +452,20 @@ export default function CalendarPage() {
             length={view === "agenda" ? daysInMonth(currentDate) : undefined}
             messages={messages}
             formats={formats}
+            min={view === "day" || view === "week" ? DAY_GRID_MIN : undefined}
+            max={view === "day" || view === "week" ? DAY_GRID_MAX : undefined}
+            scrollToTime={scrollToTime}
+            step={30}
+            timeslots={2}
             onNavigate={(date) => setCurrentDate(civilNoon(dayKey(date)))}
             onView={handleViewChange}
-            onSelectEvent={(event) => openDay(event.start)}
+            onSelectEvent={handleSelectEvent}
             onSelectSlot={(slot) => openDay(slot.start)}
-            eventPropGetter={() => ({
-              className: "bakery-calendar-event",
+            eventPropGetter={(event) => ({
+              className:
+                event.resource.kind === "sale"
+                  ? "bakery-calendar-event bakery-calendar-event--timed"
+                  : "bakery-calendar-event",
             })}
             dayPropGetter={(date) => {
               const key = dayKey(date);
@@ -384,6 +479,14 @@ export default function CalendarPage() {
                   .filter(Boolean)
                   .join(" "),
               };
+            }}
+            tooltipAccessor={(event) => {
+              if (event.resource.kind !== "sale") return event.title;
+              const sale = event.resource.sale;
+              const items = sale.items
+                .map((item) => `${item.productName} × ${item.quantity}`)
+                .join(", ");
+              return `${event.resource.shopName} · ${event.resource.deliveryGuyName}\n${items}\n${formatCurrency(sale.totalAmount)}`;
             }}
           />
         )}

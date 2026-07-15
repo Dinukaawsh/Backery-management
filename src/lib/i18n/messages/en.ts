@@ -256,6 +256,7 @@ export const en = {
   "calendar.showMore": "+{count} more",
   "calendar.noEvents": "No sales in this range",
   "calendar.dayEvent": "{count} sales · {total}",
+  "calendar.saleEvent": "{shop} · {total}",
   "calendar.totalSales": "Sales",
   "calendar.saleCountLabel": "{count} sales",
   "calendar.dayTotal": "Day total",

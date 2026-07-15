@@ -365,6 +365,12 @@ body,
   color: #fff !important;
 }
 
+.bakery-calendar .bakery-calendar-event--timed {
+  font-size: 0.72rem !important;
+  line-height: 1.25;
+  overflow: hidden;
+}
+
 .bakery-calendar .rbc-event:focus,
 .bakery-calendar .rbc-event:hover {
   background: #92400e !important;

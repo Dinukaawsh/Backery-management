@@ -1,7 +1,8 @@
 "use client";
 
-import { Modal } from "./Modal";
-import { Button } from "./Button";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import { useT } from "@/lib/i18n";
 
 type ConfirmModalProps = {
   open: boolean;
@@ -19,13 +20,14 @@ export function ConfirmModal({
   open,
   title,
   message,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   variant = "primary",
-  loading,
+  loading = false,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const t = useT();
   return (
     <Modal
       open={open}
@@ -34,20 +36,20 @@ export function ConfirmModal({
       footer={
         <div className="grid grid-cols-2 gap-3">
           <Button variant="secondary" fullWidth onClick={onCancel} disabled={loading}>
-            {cancelLabel}
+            {cancelLabel ?? t("common.cancel")}
           </Button>
           <Button
-            variant={variant}
+            variant={variant === "danger" ? "danger" : "primary"}
             fullWidth
             onClick={onConfirm}
             disabled={loading}
           >
-            {loading ? "Please wait..." : confirmLabel}
+            {loading ? t("common.pleaseWait") : (confirmLabel ?? t("common.confirm"))}
           </Button>
         </div>
       }
     >
-      <p className="text-sm text-black">{message}</p>
+      <p className="text-sm text-stone-700">{message}</p>
     </Modal>
   );
 }

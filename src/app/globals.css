@@ -233,3 +233,40 @@ body,
     transform: translateY(-24px) scale(0.88);
   }
 }
+
+/* ~80mm (3-inch) thermal bill print */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .bill-print-area,
+  .bill-print-area * {
+    visibility: visible !important;
+  }
+
+  .bill-print-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 4mm !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    font-family:
+      var(--font-geist-sans),
+      var(--font-noto-sinhala),
+      Arial,
+      sans-serif !important;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+}
+

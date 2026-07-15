@@ -23,6 +23,41 @@ export function localDateString(date = new Date()) {
   }).format(date);
 }
 
+export function colomboParts(date = new Date()) {
+  const [year, month, day] = localDateString(date).split("-").map(Number);
+  return { year, month, day };
+}
+
+/** Noon on a Colombo calendar day — stable for calendar all-day placement. */
+export function colomboNoon(dateKey: string) {
+  return new Date(`${dateKey}T12:00:00+05:30`);
+}
+
+export function startOfMonthKey(date = new Date()) {
+  const { year, month } = colomboParts(date);
+  return `${year}-${String(month).padStart(2, "0")}-01`;
+}
+
+export function endOfMonthKey(date = new Date()) {
+  const { year, month } = colomboParts(date);
+  const lastDay = new Date(year, month, 0).getDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}
+
+/** Monday-based week containing `date`, in Colombo calendar keys. */
+export function weekRangeKeys(date = new Date()) {
+  const key = localDateString(date);
+  const noon = colomboNoon(key);
+  const dow = noon.getUTCDay(); // 0 Sun .. 6 Sat (stable for +05:30 noon)
+  const mondayOffset = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(noon.getTime() + mondayOffset * DAY_MS);
+  const sunday = new Date(monday.getTime() + 6 * DAY_MS);
+  return {
+    from: localDateString(monday),
+    to: localDateString(sunday),
+  };
+}
+
 /** Start/end of the business calendar day containing `date` (Sri Lanka). */
 export function dayRange(date: Date) {
   const start = parseDateInput(localDateString(date));

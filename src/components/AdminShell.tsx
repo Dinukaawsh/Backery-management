@@ -8,6 +8,7 @@ import {
   HiOutlineArrowRightOnRectangle,
   HiOutlineBars3,
   HiOutlineBuildingStorefront,
+  HiOutlineCalendarDays,
   HiOutlineChartBarSquare,
   HiOutlineClipboardDocumentList,
   HiOutlineCog6Tooth,
@@ -56,6 +57,11 @@ const navItems: NavItem[] = [
     href: "/shops",
     key: "nav.shops",
     icon: HiOutlineBuildingStorefront,
+  },
+  {
+    href: "/calendar",
+    key: "nav.calendar",
+    icon: HiOutlineCalendarDays,
   },
   { href: "/settings", key: "nav.settings", icon: HiOutlineCog6Tooth },
 ];

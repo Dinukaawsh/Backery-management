@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 
 import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
-import { sevenDaysAgo } from "@/lib/dates";
+import { localDateString, sevenDaysAgo } from "@/lib/dates";
 import { getShopDrops } from "@/lib/shop-drops";
 
 export async function OPTIONS() {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     if (auth.session.role === "delivery") {
       deliveryGuyId = auth.session.id;
-      const minDate = sevenDaysAgo().toISOString().slice(0, 10);
+      const minDate = localDateString(sevenDaysAgo());
 
       if (date) {
         if (date < minDate) {

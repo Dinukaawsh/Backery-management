@@ -2,7 +2,7 @@ import { and, eq, gte, inArray, lte } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { products, saleItems, sales, shops, users } from "@/db/schema";
-import { dayRange, parseDateInput } from "@/lib/dates";
+import { dayRange, localDateString, parseDateInput } from "@/lib/dates";
 
 export type ShopDropItem = {
   productId: number;
@@ -34,8 +34,9 @@ export type ShopDropSummary = {
   sales: ShopDropSale[];
 };
 
+/** Calendar day key in Sri Lanka business time (Asia/Colombo). */
 function toDayKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+  return localDateString(date);
 }
 
 export async function getShopDrops(params: {

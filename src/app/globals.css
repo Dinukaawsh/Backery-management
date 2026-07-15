@@ -270,3 +270,144 @@ body,
   }
 }
 
+/* Sales calendar (react-big-calendar) — bakery theme */
+.bakery-calendar {
+  font-family:
+    var(--font-geist-sans),
+    var(--font-noto-sinhala),
+    Arial,
+    Helvetica,
+    sans-serif;
+}
+
+.bakery-calendar .rbc-calendar {
+  min-height: 560px;
+}
+
+.bakery-calendar .rbc-toolbar {
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.bakery-calendar .rbc-toolbar button {
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #1c1917;
+  border-radius: 0.75rem;
+  padding: 0.4rem 0.85rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.bakery-calendar .rbc-toolbar button:hover,
+.bakery-calendar .rbc-toolbar button:active,
+.bakery-calendar .rbc-toolbar button.rbc-active {
+  background: #d97706;
+  border-color: #d97706;
+  color: #fff;
+}
+
+.bakery-calendar .rbc-toolbar-label {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1c1917;
+}
+
+.bakery-calendar .rbc-header {
+  border-color: #fde68a;
+  padding: 0.65rem 0.25rem;
+  font-weight: 600;
+  color: #92400e;
+  background: #fffbeb;
+}
+
+.bakery-calendar .rbc-month-view,
+.bakery-calendar .rbc-time-view,
+.bakery-calendar .rbc-month-row + .rbc-month-row,
+.bakery-calendar .rbc-day-bg + .rbc-day-bg,
+.bakery-calendar .rbc-header + .rbc-header,
+.bakery-calendar .rbc-time-header-content,
+.bakery-calendar .rbc-timeslot-group,
+.bakery-calendar .rbc-time-content > * + * > * {
+  border-color: #fde68a;
+}
+
+.bakery-calendar .rbc-off-range-bg {
+  background: #fafaf9;
+}
+
+.bakery-calendar .rbc-today {
+  background: #fef3c7;
+}
+
+.bakery-calendar .bakery-calendar-day--has-sales {
+  background: #fff7ed;
+}
+
+.bakery-calendar .bakery-calendar-day--selected {
+  box-shadow: inset 0 0 0 2px #d97706;
+}
+
+.bakery-calendar .rbc-date-cell {
+  padding: 0.35rem 0.5rem;
+  font-weight: 600;
+}
+
+.bakery-calendar .rbc-event,
+.bakery-calendar .bakery-calendar-event {
+  background: #b45309 !important;
+  border: none !important;
+  border-radius: 0.5rem !important;
+  padding: 2px 6px !important;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff !important;
+}
+
+.bakery-calendar .rbc-event:focus,
+.bakery-calendar .rbc-event:hover {
+  background: #92400e !important;
+}
+
+.bakery-calendar .rbc-show-more {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.bakery-calendar .rbc-selected-cell {
+  background: #ffedd5;
+}
+
+.bakery-calendar .rbc-agenda-view table.rbc-agenda-table {
+  border-color: #fde68a;
+  font-family: inherit;
+}
+
+.bakery-calendar .rbc-agenda-view table.rbc-agenda-table thead > tr > th,
+.bakery-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  border-color: #fde68a;
+  padding: 0.65rem 0.75rem;
+}
+
+.bakery-calendar .rbc-agenda-date-cell,
+.bakery-calendar .rbc-agenda-time-cell {
+  color: #92400e;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bakery-calendar .rbc-agenda-event-cell {
+  color: #1c1917;
+}
+
+.bakery-calendar .rbc-time-header-content,
+.bakery-calendar .rbc-time-content,
+.bakery-calendar .rbc-day-slot .rbc-time-slot {
+  border-color: #fde68a;
+}
+
+.bakery-calendar .rbc-current-time-indicator {
+  background-color: #d97706;
+}
+

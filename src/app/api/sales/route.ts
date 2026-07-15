@@ -6,7 +6,13 @@ import { products, saleItems, sales, shops, users } from "@/db/schema";
 import { getRemainingStock } from "@/lib/allocations";
 import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
-import { parseDateInput, parseSaleTimestamp, sevenDaysAgo, localDateString } from "@/lib/dates";
+import {
+  localDateString,
+  parseDateInput,
+  parseSaleTimestamp,
+  sevenDaysAgo,
+} from "@/lib/dates";
+import { formatMoney, parseMoney } from "@/lib/money";
 import { validateSaleInput } from "@/lib/validators";
 
 function startOfToday() {
@@ -21,6 +27,9 @@ async function getSaleWithDetails(saleId: number) {
       shopId: sales.shopId,
       saleDate: sales.saleDate,
       totalAmount: sales.totalAmount,
+      previousBalance: sales.previousBalance,
+      paidAmount: sales.paidAmount,
+      remainingAfter: sales.remainingAfter,
       notes: sales.notes,
       billPrinted: sales.billPrinted,
       createdAt: sales.createdAt,
@@ -50,7 +59,19 @@ async function getSaleWithDetails(saleId: number) {
     .innerJoin(products, eq(saleItems.productId, products.id))
     .where(eq(saleItems.saleId, saleId));
 
-  return { ...sale, items };
+  const previousBalance = parseMoney(sale.previousBalance);
+  const totalAmount = parseMoney(sale.totalAmount);
+  const paidAmount = parseMoney(sale.paidAmount);
+  const amountDue = previousBalance + totalAmount;
+
+  return {
+    ...sale,
+    items,
+    amountDue: formatMoney(amountDue),
+    paidAmount: formatMoney(paidAmount),
+    previousBalance: formatMoney(previousBalance),
+    remainingAfter: formatMoney(parseMoney(sale.remainingAfter)),
+  };
 }
 
 export async function OPTIONS() {
@@ -108,6 +129,9 @@ export async function GET(request: NextRequest) {
         shopId: sales.shopId,
         saleDate: sales.saleDate,
         totalAmount: sales.totalAmount,
+        previousBalance: sales.previousBalance,
+        paidAmount: sales.paidAmount,
+        remainingAfter: sales.remainingAfter,
         notes: sales.notes,
         billPrinted: sales.billPrinted,
         createdAt: sales.createdAt,
@@ -120,7 +144,14 @@ export async function GET(request: NextRequest) {
       .where(whereClause)
       .orderBy(desc(sales.saleDate));
 
-    return corsResponse({ sales: rows });
+    return corsResponse({
+      sales: rows.map((row) => ({
+        ...row,
+        amountDue: formatMoney(
+          parseMoney(row.previousBalance) + parseMoney(row.totalAmount),
+        ),
+      })),
+    });
   } catch (error) {
     console.error("GET /api/sales failed:", error);
     return corsResponse({ error: "Failed to fetch sales" }, 500);
@@ -154,7 +185,11 @@ export async function POST(request: NextRequest) {
     }
 
     const [shop] = await db
-      .select({ id: shops.id, isActive: shops.isActive })
+      .select({
+        id: shops.id,
+        isActive: shops.isActive,
+        outstandingBalance: shops.outstandingBalance,
+      })
       .from(shops)
       .where(eq(shops.id, input.shopId))
       .limit(1);
@@ -168,7 +203,8 @@ export async function POST(request: NextRequest) {
     }
 
     const saleDay =
-      parseDateInput(input.saleDate.slice(0, 10)) ?? parseDateInput(localDateString())!;
+      parseDateInput(input.saleDate.slice(0, 10)) ??
+      parseDateInput(localDateString())!;
 
     for (const item of input.items) {
       const [product] = await db
@@ -215,13 +251,33 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const previousBalance = parseMoney(shop.outstandingBalance);
+    const todayTotal = parseMoney(totalAmount);
+    const amountDue = parseMoney(previousBalance + todayTotal);
+
+    let paidAmount = 0;
+    if (body.paidAmount !== undefined && body.paidAmount !== null) {
+      paidAmount = parseMoney(body.paidAmount);
+      if (paidAmount < 0) {
+        return corsResponse({ error: "Paid amount cannot be negative" }, 400);
+      }
+      if (paidAmount > amountDue) {
+        paidAmount = amountDue;
+      }
+    }
+
+    const remainingAfter = parseMoney(amountDue - paidAmount);
+
     const [sale] = await db
       .insert(sales)
       .values({
         deliveryGuyId,
         shopId: input.shopId,
         saleDate: parseSaleTimestamp(input.saleDate),
-        totalAmount: totalAmount.toFixed(2),
+        totalAmount: formatMoney(todayTotal),
+        previousBalance: formatMoney(previousBalance),
+        paidAmount: formatMoney(paidAmount),
+        remainingAfter: formatMoney(remainingAfter),
         notes: input.notes,
       })
       .returning();
@@ -234,6 +290,11 @@ export async function POST(request: NextRequest) {
         unitPrice: item.unitPrice,
       });
     }
+
+    await db
+      .update(shops)
+      .set({ outstandingBalance: formatMoney(remainingAfter) })
+      .where(eq(shops.id, input.shopId));
 
     const fullSale = await getSaleWithDetails(sale.id);
     return corsResponse({ sale: fullSale }, 201);

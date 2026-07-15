@@ -48,6 +48,12 @@ export const shops = pgTable("shops", {
   address: text("address").notNull(),
   phone: text("phone"),
   route: text("route"),
+  outstandingBalance: numeric("outstanding_balance", {
+    precision: 10,
+    scale: 2,
+  })
+    .notNull()
+    .default("0.00"),
   isActive: boolean("is_active").notNull().default(true),
   createdById: integer("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -63,6 +69,15 @@ export const sales = pgTable("sales", {
     .references(() => shops.id),
   saleDate: timestamp("sale_date").notNull(),
   totalAmount: numeric("total_amount", { precision: 10, scale: 2 }).notNull(),
+  previousBalance: numeric("previous_balance", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0.00"),
+  paidAmount: numeric("paid_amount", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0.00"),
+  remainingAfter: numeric("remaining_after", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0.00"),
   notes: text("notes"),
   billPrinted: boolean("bill_printed").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -30,6 +30,7 @@ export type Shop = {
   address: string;
   phone: string | null;
   route: string | null;
+  outstandingBalance: string;
   isActive: boolean;
   createdById?: number | null;
   createdAt: string;
@@ -78,6 +79,10 @@ export type Sale = {
   shopId: number;
   saleDate: string;
   totalAmount: string;
+  previousBalance?: string;
+  paidAmount?: string;
+  remainingAfter?: string;
+  amountDue?: string;
   notes: string | null;
   billPrinted: boolean;
   createdAt: string;
@@ -517,6 +522,14 @@ export async function markBillPrinted(id: number) {
   const data = await apiFetch<{ sale: Sale }>(`/api/sales/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ billPrinted: true }),
+  });
+  return data.sale;
+}
+
+export async function settleSalePayment(id: number, paidAmount: number) {
+  const data = await apiFetch<{ sale: Sale }>(`/api/sales/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ paidAmount }),
   });
   return data.sale;
 }

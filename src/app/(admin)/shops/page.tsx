@@ -237,10 +237,20 @@ export default function ShopsPage() {
       sections: [
         {
           heading: "All shops",
-          headers: ["Shop", "Route", "Owner", "Address", "Status", "Added by", "Registered"],
+          headers: [
+            "Shop",
+            "Route",
+            "Outstanding (Rs)",
+            "Owner",
+            "Address",
+            "Status",
+            "Added by",
+            "Registered",
+          ],
           rows: shops.map((shop) => [
             shop.name,
             shop.route ?? "—",
+            formatCurrency(shop.outstandingBalance ?? "0"),
             shop.ownerName,
             shop.address,
             shop.isActive ? "Active" : "Disabled",
@@ -294,6 +304,11 @@ export default function ShopsPage() {
       key: "route",
       header: "Route",
       render: (s) => s.route ?? "—",
+    },
+    {
+      key: "outstanding",
+      header: "Outstanding (Rs)",
+      render: (s) => formatCurrency(s.outstandingBalance ?? "0"),
     },
     { key: "owner", header: "Owner", render: (s) => s.ownerName },
     { key: "address", header: "Address", render: (s) => s.address },
@@ -455,6 +470,7 @@ export default function ShopsPage() {
             [
               shop.name,
               shop.route,
+              shop.outstandingBalance,
               shop.ownerName,
               shop.address,
               shop.phone,

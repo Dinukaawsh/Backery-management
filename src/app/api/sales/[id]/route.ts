@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { products, saleItems, sales, shops, users } from "@/db/schema";
 import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
+import { formatMoney, parseMoney } from "@/lib/money";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -22,6 +23,9 @@ async function getSaleWithDetails(saleId: number) {
       shopId: sales.shopId,
       saleDate: sales.saleDate,
       totalAmount: sales.totalAmount,
+      previousBalance: sales.previousBalance,
+      paidAmount: sales.paidAmount,
+      remainingAfter: sales.remainingAfter,
       notes: sales.notes,
       billPrinted: sales.billPrinted,
       createdAt: sales.createdAt,
@@ -51,7 +55,18 @@ async function getSaleWithDetails(saleId: number) {
     .innerJoin(products, eq(saleItems.productId, products.id))
     .where(eq(saleItems.saleId, saleId));
 
-  return { ...sale, items };
+  const previousBalance = parseMoney(sale.previousBalance);
+  const totalAmount = parseMoney(sale.totalAmount);
+  const paidAmount = parseMoney(sale.paidAmount);
+
+  return {
+    ...sale,
+    items,
+    amountDue: formatMoney(previousBalance + totalAmount),
+    paidAmount: formatMoney(paidAmount),
+    previousBalance: formatMoney(previousBalance),
+    remainingAfter: formatMoney(parseMoney(sale.remainingAfter)),
+  };
 }
 
 export async function OPTIONS() {
@@ -109,13 +124,45 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const body = await request.json();
-    const updates: Partial<{ billPrinted: boolean; notes: string | null }> = {};
+    const updates: Partial<{
+      billPrinted: boolean;
+      notes: string | null;
+      paidAmount: string;
+      remainingAfter: string;
+    }> = {};
 
     if (typeof body.billPrinted === "boolean") {
       updates.billPrinted = body.billPrinted;
     }
     if (typeof body.notes === "string") {
       updates.notes = body.notes.trim();
+    }
+
+    if (body.paidAmount !== undefined && body.paidAmount !== null) {
+      const previousBalance = parseMoney(existing.previousBalance);
+      const todayTotal = parseMoney(existing.totalAmount);
+      const amountDue = parseMoney(previousBalance + todayTotal);
+      let paidAmount = parseMoney(body.paidAmount);
+
+      if (paidAmount < 0) {
+        return corsResponse({ error: "Paid amount cannot be negative" }, 400);
+      }
+      if (paidAmount > amountDue) {
+        paidAmount = amountDue;
+      }
+
+      const remainingAfter = parseMoney(amountDue - paidAmount);
+      updates.paidAmount = formatMoney(paidAmount);
+      updates.remainingAfter = formatMoney(remainingAfter);
+
+      await getDb()
+        .update(shops)
+        .set({ outstandingBalance: formatMoney(remainingAfter) })
+        .where(eq(shops.id, existing.shopId));
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return corsResponse({ error: "No changes provided" }, 400);
     }
 
     await getDb().update(sales).set(updates).where(eq(sales.id, saleId));

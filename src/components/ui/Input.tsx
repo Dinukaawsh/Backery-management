@@ -3,6 +3,8 @@
 import { InputHTMLAttributes, useState } from "react";
 import { HiOutlineEye, HiOutlineEyeSlash } from "react-icons/hi2";
 
+import { useT } from "@/lib/i18n";
+
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
   error?: string;
@@ -16,6 +18,7 @@ export function Input({
   type,
   ...props
 }: InputProps) {
+  const t = useT();
   const [showPassword, setShowPassword] = useState(false);
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
   const isPassword = type === "password";
@@ -41,7 +44,11 @@ export function Input({
             type="button"
             onClick={() => setShowPassword((current) => !current)}
             className="shrink-0 rounded-lg p-1 text-stone-500 transition hover:bg-amber-50 hover:text-amber-800"
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={
+              showPassword
+                ? t("login.hidePasswordAria")
+                : t("login.showPasswordAria")
+            }
             tabIndex={-1}
           >
             {showPassword ? (

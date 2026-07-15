@@ -474,6 +474,43 @@ export const en = {
   "locale.en": "EN",
   "locale.si": "සිං",
   "locale.switchAria": "Switch language",
+
+  "splash.loading": "Loading...",
+  "splash.copyright":
+    "Created by DDRsolutions © {year}. All rights reserved.",
+
+  "upload.image": "Image",
+  "upload.optional": "(optional)",
+  "upload.chooseImage": "Choose image",
+  "upload.uploading": "Uploading...",
+  "upload.uploadingHint": "Uploading image...",
+  "upload.previewAlt": "Upload preview",
+  "upload.failed": "Upload failed",
+
+  "modal.close": "Close modal",
+  "modal.closeBackdrop": "Close modal backdrop",
+
+  "datepicker.prevMonth": "Previous month",
+  "datepicker.nextMonth": "Next month",
+  "datepicker.selectDate": "Select date",
+  "datepicker.weekday.su": "Su",
+  "datepicker.weekday.mo": "Mo",
+  "datepicker.weekday.tu": "Tu",
+  "datepicker.weekday.we": "We",
+  "datepicker.weekday.th": "Th",
+  "datepicker.weekday.fr": "Fr",
+  "datepicker.weekday.sa": "Sa",
+
+  "settings.role": "Role",
+
+  "sales.pdfSubtitleStats":
+    "{filter}  •  {count} sale(s)  •  Total: {total}",
+  "sales.filter.today": "Date: Today ({date})",
+  "sales.filter.range": "Date range: {from} to {to}",
+  "sales.filter.from": "From: {from}",
+  "sales.filter.until": "Until: {to}",
+  "sales.filter.allDates": "Date: All records",
+  "sales.filter.deliveryPartner": "Delivery partner: {name}",
 } as const;
 
 export type EnMessages = typeof en;

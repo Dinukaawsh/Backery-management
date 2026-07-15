@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useT } from "@/lib/i18n";
+
 type CategoryInputProps = {
   label?: string;
   value: string;
@@ -17,12 +19,15 @@ export function CategoryInput({
   value,
   onChange,
   categories,
-  placeholder = "Type or pick a category",
+  placeholder,
   required,
   error,
 }: CategoryInputProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const resolvedPlaceholder =
+    placeholder ?? t("products.formCategoryPlaceholder");
 
   const trimmed = value.trim();
   const filtered = categories.filter((category) => {
@@ -57,7 +62,7 @@ export function CategoryInput({
         type="text"
         required={required}
         value={value}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         onFocus={() => setOpen(true)}
         onChange={(event) => {
           onChange(event.target.value);

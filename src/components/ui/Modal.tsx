@@ -3,6 +3,8 @@
 import { ReactNode, useEffect } from "react";
 import { HiOutlineXMark } from "react-icons/hi2";
 
+import { useT } from "@/lib/i18n";
+
 type ModalProps = {
   open: boolean;
   title: string;
@@ -20,6 +22,8 @@ export function Modal({
   footer,
   size = "md",
 }: ModalProps) {
+  const t = useT();
+
   useEffect(() => {
     if (!open) return;
 
@@ -43,7 +47,7 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        aria-label="Close modal backdrop"
+        aria-label={t("modal.closeBackdrop")}
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
       />
@@ -57,7 +61,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close modal"
+            aria-label={t("modal.close")}
             className="rounded-lg p-1 text-black hover:bg-amber-50"
           >
             <HiOutlineXMark className="h-5 w-5" />

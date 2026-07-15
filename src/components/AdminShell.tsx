@@ -131,11 +131,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className="flex items-center gap-2 rounded-lg border border-amber-200 px-3 py-2 text-sm text-black lg:hidden"
+              aria-label={t("shell.menu")}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-200 text-black lg:hidden"
               onClick={() => setSidebarOpen(true)}
             >
               <HiOutlineBars3 className="h-5 w-5" />
-              {t("shell.menu")}
             </button>
             <div>
               <p className="text-xs uppercase tracking-wide text-stone-500">

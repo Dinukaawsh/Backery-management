@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { HiOutlinePhoto, HiOutlineTrash } from "react-icons/hi2";
 
+import { useT } from "@/lib/i18n";
+
 import { Button } from "./Button";
 import { LoadingSpinner } from "./LoadingSpinner";
 
@@ -14,11 +16,12 @@ type ImageUploadProps = {
 };
 
 export function ImageUpload({
-  label = "Image",
+  label,
   value,
   onChange,
   optional = true,
 }: ImageUploadProps) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,13 +45,13 @@ export function ImageUpload({
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error ?? "Upload failed");
+        throw new Error(data.error ?? t("upload.failed"));
       }
 
       onChange(data.url as string);
     } catch (uploadError) {
       setError(
-        uploadError instanceof Error ? uploadError.message : "Upload failed",
+        uploadError instanceof Error ? uploadError.message : t("upload.failed"),
       );
     } finally {
       setUploading(false);
@@ -59,13 +62,18 @@ export function ImageUpload({
   return (
     <div>
       <p className="bakery-label">
-        {label} {optional ? "(optional)" : ""}
+        {label ?? t("upload.image")}{" "}
+        {optional ? t("upload.optional") : ""}
       </p>
       <div className="flex items-center gap-4">
         <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl border border-amber-200 bg-amber-50">
           {value ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={value} alt="Upload preview" className="h-full w-full object-cover" />
+            <img
+              src={value}
+              alt={t("upload.previewAlt")}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <HiOutlinePhoto className="h-8 w-8 text-stone-400" aria-hidden />
           )}
@@ -85,20 +93,22 @@ export function ImageUpload({
           >
             <span className="inline-flex items-center gap-2">
               <HiOutlinePhoto className="h-4 w-4" />
-              {uploading ? "Uploading..." : "Choose image"}
+              {uploading ? t("upload.uploading") : t("upload.chooseImage")}
             </span>
           </Button>
           {value ? (
             <Button variant="ghost" onClick={() => onChange(null)}>
               <span className="inline-flex items-center gap-2">
                 <HiOutlineTrash className="h-4 w-4" />
-                Remove
+                {t("common.remove")}
               </span>
             </Button>
           ) : null}
         </div>
       </div>
-      {uploading ? <LoadingSpinner size="sm" label="Uploading to Cloudinary..." /> : null}
+      {uploading ? (
+        <LoadingSpinner size="sm" label={t("upload.uploadingHint")} />
+      ) : null}
       {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
     </div>
   );

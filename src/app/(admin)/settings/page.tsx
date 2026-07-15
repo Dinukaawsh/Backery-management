@@ -424,7 +424,7 @@ export default function SettingsPage() {
             />
             <InfoTile
               icon={HiOutlineCog6Tooth}
-              label="Role"
+              label={t("settings.role")}
               value={<span className="capitalize">{role}</span>}
             />
           </div>

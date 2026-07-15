@@ -68,12 +68,15 @@ export default function SalesPage() {
 
   function getFilterSubtitle() {
     const guy = deliveryGuys.find((item) => String(item.id) === deliveryGuyId);
-    return buildSalesFilterSubtitle({
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
-      deliveryGuyName: guy?.name,
-      todayOnly,
-    });
+    return buildSalesFilterSubtitle(
+      {
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        deliveryGuyName: guy?.name,
+        todayOnly,
+      },
+      (key, params) => t(key as Parameters<typeof t>[0], params),
+    );
   }
 
   function handleExportPdf() {
@@ -90,7 +93,11 @@ export default function SalesPage() {
     downloadPdf({
       filename: "sales-report",
       title: t("sales.pdfTitle"),
-      subtitle: `${getFilterSubtitle()}  •  ${sales.length} sale(s)  •  Total: ${formatCurrency(totalRevenue)}`,
+      subtitle: t("sales.pdfSubtitleStats", {
+        filter: getFilterSubtitle(),
+        count: sales.length,
+        total: formatCurrency(totalRevenue),
+      }),
       business: settings,
       sections: [
         {

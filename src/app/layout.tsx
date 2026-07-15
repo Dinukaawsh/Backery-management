@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_Sinhala } from "next/font/google";
 import "./globals.css";
 
-import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
+import { SessionSplash } from "@/components/SessionSplash";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,6 +25,9 @@ const notoSinhala = Noto_Sans_Sinhala({
 export const metadata: Metadata = {
   title: "Bakery",
   description: "Bakery web and mobile platform powered by Next.js and Neon",
+  icons: {
+    icon: "/app-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -38,7 +42,9 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col overflow-x-hidden">
         <LocaleProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            <SessionSplash>{children}</SessionSplash>
+          </ToastProvider>
         </LocaleProvider>
       </body>
     </html>

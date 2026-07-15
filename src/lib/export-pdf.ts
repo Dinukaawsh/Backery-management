@@ -152,30 +152,58 @@ export function downloadPdf(options: PdfExportOptions) {
   doc.save(`${safeName}.pdf`);
 }
 
-export function buildSalesFilterSubtitle(input: {
-  dateFrom?: string;
-  dateTo?: string;
-  deliveryGuyName?: string;
-  todayOnly?: boolean;
-}) {
+export function buildSalesFilterSubtitle(
+  input: {
+    dateFrom?: string;
+    dateTo?: string;
+    deliveryGuyName?: string;
+    todayOnly?: boolean;
+  },
+  t?: (key: string, params?: Record<string, string | number>) => string,
+) {
+  const translate =
+    t ??
+    ((key: string, params?: Record<string, string | number>) => {
+      const fallbacks: Record<string, string> = {
+        "sales.filter.today": `Date: Today (${params?.date ?? ""})`,
+        "sales.filter.range": `Date range: ${params?.from ?? ""} to ${params?.to ?? ""}`,
+        "sales.filter.from": `From: ${params?.from ?? ""}`,
+        "sales.filter.until": `Until: ${params?.to ?? ""}`,
+        "sales.filter.allDates": "Date: All records",
+        "sales.filter.deliveryPartner": `Delivery partner: ${params?.name ?? ""}`,
+      };
+      return fallbacks[key] ?? key;
+    });
+
   const parts: string[] = [];
 
   if (input.todayOnly) {
-    parts.push(`Date: Today (${new Date().toLocaleDateString()})`);
+    parts.push(
+      translate("sales.filter.today", {
+        date: new Date().toLocaleDateString(),
+      }),
+    );
+  } else if (input.dateFrom && input.dateTo) {
+    parts.push(
+      translate("sales.filter.range", {
+        from: input.dateFrom,
+        to: input.dateTo,
+      }),
+    );
+  } else if (input.dateFrom) {
+    parts.push(translate("sales.filter.from", { from: input.dateFrom }));
+  } else if (input.dateTo) {
+    parts.push(translate("sales.filter.until", { to: input.dateTo }));
   } else {
-    if (input.dateFrom && input.dateTo) {
-      parts.push(`Date range: ${input.dateFrom} to ${input.dateTo}`);
-    } else if (input.dateFrom) {
-      parts.push(`From: ${input.dateFrom}`);
-    } else if (input.dateTo) {
-      parts.push(`Until: ${input.dateTo}`);
-    } else {
-      parts.push("Date: All records");
-    }
+    parts.push(translate("sales.filter.allDates"));
   }
 
   if (input.deliveryGuyName) {
-    parts.push(`Delivery partner: ${input.deliveryGuyName}`);
+    parts.push(
+      translate("sales.filter.deliveryPartner", {
+        name: input.deliveryGuyName,
+      }),
+    );
   }
 
   return parts.join("  •  ");

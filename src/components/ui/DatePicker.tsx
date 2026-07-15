@@ -7,6 +7,8 @@ import {
   HiOutlineChevronRight,
 } from "react-icons/hi2";
 
+import { useT } from "@/lib/i18n";
+
 import { Dropdown } from "./Dropdown";
 
 type DatePickerProps = {
@@ -62,6 +64,7 @@ export function DatePicker({
   error,
   disabled,
 }: DatePickerProps) {
+  const t = useT();
   const parsed = parseValue(value);
   const [open, setOpen] = useState(false);
   const [viewYear, setViewYear] = useState(parsed.year);
@@ -98,7 +101,7 @@ export function DatePicker({
 
   const displayValue = value
     ? new Date(`${value}T00:00:00`).toLocaleDateString()
-    : "Select date";
+    : t("datepicker.selectDate");
 
   function selectDay(day: number) {
     onChange(toIsoDate(viewYear, viewMonth, day));
@@ -115,6 +118,16 @@ export function DatePicker({
     const now = new Date();
     return toIsoDate(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
+
+  const weekdays = [
+    t("datepicker.weekday.su"),
+    t("datepicker.weekday.mo"),
+    t("datepicker.weekday.tu"),
+    t("datepicker.weekday.we"),
+    t("datepicker.weekday.th"),
+    t("datepicker.weekday.fr"),
+    t("datepicker.weekday.sa"),
+  ];
 
   return (
     <div ref={rootRef} className="relative">
@@ -136,7 +149,7 @@ export function DatePicker({
           <div className="mb-3 flex items-center gap-2">
             <button
               type="button"
-              aria-label="Previous month"
+              aria-label={t("datepicker.prevMonth")}
               className="rounded-lg p-2 hover:bg-amber-50"
               onClick={() => shiftMonth(-1)}
             >
@@ -159,7 +172,7 @@ export function DatePicker({
 
             <button
               type="button"
-              aria-label="Next month"
+              aria-label={t("datepicker.nextMonth")}
               className="rounded-lg p-2 hover:bg-amber-50"
               onClick={() => shiftMonth(1)}
             >
@@ -168,8 +181,8 @@ export function DatePicker({
           </div>
 
           <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs text-stone-500">
-            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-              <span key={day}>{day}</span>
+            {weekdays.map((day, index) => (
+              <span key={index}>{day}</span>
             ))}
           </div>
 

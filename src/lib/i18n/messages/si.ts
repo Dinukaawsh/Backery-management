@@ -478,4 +478,41 @@ export const si: { [K in keyof EnMessages]: string } = {
   "locale.en": "EN",
   "locale.si": "සිං",
   "locale.switchAria": "භාෂාව මාරු කරන්න",
+
+  "splash.loading": "පූරණය වෙමින්...",
+  "splash.copyright":
+    "Created by DDRsolutions © {year}. All rights reserved.",
+
+  "upload.image": "රූපය",
+  "upload.optional": "(විකල්ප)",
+  "upload.chooseImage": "රූපය තෝරන්න",
+  "upload.uploading": "උඩුගත කරමින්...",
+  "upload.uploadingHint": "රූපය උඩුගත කරමින්...",
+  "upload.previewAlt": "උඩුගත පෙරදසුන",
+  "upload.failed": "උඩුගත කිරීම අසාර්ථකයි",
+
+  "modal.close": "මොඩලය වසන්න",
+  "modal.closeBackdrop": "පසුබිම වසන්න",
+
+  "datepicker.prevMonth": "පෙර මාසය",
+  "datepicker.nextMonth": "ඊළඟ මාසය",
+  "datepicker.selectDate": "දිනය තෝරන්න",
+  "datepicker.weekday.su": "ඉ",
+  "datepicker.weekday.mo": "ස",
+  "datepicker.weekday.tu": "අ",
+  "datepicker.weekday.we": "බ",
+  "datepicker.weekday.th": "බ්‍ර",
+  "datepicker.weekday.fr": "සි",
+  "datepicker.weekday.sa": "සෙ",
+
+  "settings.role": "භූමිකාව",
+
+  "sales.pdfSubtitleStats":
+    "{filter}  •  විකුණුම් {count}  •  මුළු: {total}",
+  "sales.filter.today": "දිනය: අද ({date})",
+  "sales.filter.range": "දින පරාසය: {from} සිට {to}",
+  "sales.filter.from": "සිට: {from}",
+  "sales.filter.until": "දක්වා: {to}",
+  "sales.filter.allDates": "දිනය: සියලු වාර්තා",
+  "sales.filter.deliveryPartner": "බෙදාහැරීමේ හවුල්කරු: {name}",
 };

@@ -89,6 +89,10 @@ export async function getAssignmentSummary(date: Date, deliveryGuyId?: number) {
       deliveryGuyName: users.name,
       productId: deliveryAllocations.productId,
       productName: products.name,
+      productDescription: products.description,
+      productPrice: products.price,
+      productCategory: products.category,
+      productImageUrl: products.imageUrl,
       allocated: sql<number>`coalesce(sum(${deliveryAllocations.quantity}), 0)`,
     })
     .from(deliveryAllocations)
@@ -100,6 +104,10 @@ export async function getAssignmentSummary(date: Date, deliveryGuyId?: number) {
       users.name,
       deliveryAllocations.productId,
       products.name,
+      products.description,
+      products.price,
+      products.category,
+      products.imageUrl,
     );
 
   const soldConditions = [
@@ -136,6 +144,10 @@ export async function getAssignmentSummary(date: Date, deliveryGuyId?: number) {
       deliveryGuyName: row.deliveryGuyName,
       productId: row.productId,
       productName: row.productName,
+      productDescription: row.productDescription,
+      productPrice: row.productPrice,
+      productCategory: row.productCategory,
+      productImageUrl: row.productImageUrl,
       allocated,
       sold,
       remaining: Math.max(0, allocated - sold),

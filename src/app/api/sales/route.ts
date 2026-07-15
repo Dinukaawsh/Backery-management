@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { NextRequest } from "next/server";
 
 import { getDb } from "@/db";
@@ -54,6 +54,7 @@ async function getSaleWithDetails(saleId: number) {
       quantity: saleItems.quantity,
       unitPrice: saleItems.unitPrice,
       productName: products.name,
+      productImageUrl: products.imageUrl,
     })
     .from(saleItems)
     .innerJoin(products, eq(saleItems.productId, products.id))
@@ -136,6 +137,9 @@ export async function GET(request: NextRequest) {
         billPrinted: sales.billPrinted,
         createdAt: sales.createdAt,
         shopName: shops.name,
+        shopOwner: shops.ownerName,
+        shopAddress: shops.address,
+        shopPhone: shops.phone,
         deliveryGuyName: users.name,
       })
       .from(sales)
@@ -144,9 +148,37 @@ export async function GET(request: NextRequest) {
       .where(whereClause)
       .orderBy(desc(sales.saleDate));
 
+    const saleIds = rows.map((row) => row.id);
+    const itemRows =
+      saleIds.length === 0
+        ? []
+        : await getDb()
+            .select({
+              id: saleItems.id,
+              saleId: saleItems.saleId,
+              productId: saleItems.productId,
+              quantity: saleItems.quantity,
+              unitPrice: saleItems.unitPrice,
+              productName: products.name,
+              productImageUrl: products.imageUrl,
+            })
+            .from(saleItems)
+            .innerJoin(products, eq(saleItems.productId, products.id))
+            .where(inArray(saleItems.saleId, saleIds));
+
+    const itemsBySale = new Map<number, typeof itemRows>();
+    for (const item of itemRows) {
+      const list = itemsBySale.get(item.saleId) ?? [];
+      list.push(item);
+      itemsBySale.set(item.saleId, list);
+    }
+
     return corsResponse({
       sales: rows.map((row) => ({
         ...row,
+        items: (itemsBySale.get(row.id) ?? []).map(
+          ({ saleId: _saleId, ...item }) => item,
+        ),
         amountDue: formatMoney(
           parseMoney(row.previousBalance) + parseMoney(row.totalAmount),
         ),

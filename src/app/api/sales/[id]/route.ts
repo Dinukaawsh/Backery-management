@@ -50,6 +50,7 @@ async function getSaleWithDetails(saleId: number) {
       quantity: saleItems.quantity,
       unitPrice: saleItems.unitPrice,
       productName: products.name,
+      productImageUrl: products.imageUrl,
     })
     .from(saleItems)
     .innerJoin(products, eq(saleItems.productId, products.id))

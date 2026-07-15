@@ -1,4 +1,5 @@
 import { desc, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { NextRequest } from "next/server";
 
 import { getDb } from "@/db";
@@ -6,6 +7,8 @@ import { shops, users } from "@/db/schema";
 import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
 import { validateShopInput } from "@/lib/validators";
+
+const creator = alias(users, "shop_creator");
 
 export async function OPTIONS() {
   return corsOptionsResponse();
@@ -16,7 +19,6 @@ export async function GET(request: NextRequest) {
   if (auth.error || !auth.session) return auth.error;
 
   try {
-    const creator = users;
     const conditions =
       auth.session.role === "delivery"
         ? eq(shops.isActive, true)
@@ -29,6 +31,7 @@ export async function GET(request: NextRequest) {
         ownerName: shops.ownerName,
         address: shops.address,
         phone: shops.phone,
+        route: shops.route,
         isActive: shops.isActive,
         createdById: shops.createdById,
         createdAt: shops.createdAt,
@@ -56,11 +59,20 @@ export async function POST(request: NextRequest) {
     const input = validateShopInput(body);
     if (!input) return corsResponse({ error: "Invalid shop data" }, 400);
 
+    const createdById = Number(auth.session.id);
+    if (!Number.isInteger(createdById) || createdById <= 0) {
+      return corsResponse({ error: "Invalid session" }, 401);
+    }
+
     const [shop] = await getDb()
       .insert(shops)
       .values({
-        ...input,
-        createdById: auth.session.id,
+        name: input.name,
+        ownerName: input.ownerName,
+        address: input.address,
+        phone: input.phone ?? null,
+        route: input.route ?? null,
+        createdById,
       })
       .returning();
 
@@ -71,14 +83,15 @@ export async function POST(request: NextRequest) {
         ownerName: shops.ownerName,
         address: shops.address,
         phone: shops.phone,
+        route: shops.route,
         isActive: shops.isActive,
         createdById: shops.createdById,
         createdAt: shops.createdAt,
-        addedByName: users.name,
-        addedByRole: users.role,
+        addedByName: creator.name,
+        addedByRole: creator.role,
       })
       .from(shops)
-      .leftJoin(users, eq(shops.createdById, users.id))
+      .leftJoin(creator, eq(shops.createdById, creator.id))
       .where(eq(shops.id, shop.id))
       .limit(1);
 

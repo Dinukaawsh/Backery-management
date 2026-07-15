@@ -12,6 +12,7 @@ export type ShopInput = {
   ownerName: string;
   address: string;
   phone?: string | null;
+  route?: string | null;
 };
 
 export type DeliveryGuyInput = {
@@ -81,6 +82,10 @@ export function validateShopInput(body: unknown): ShopInput | null {
     ownerName: data.ownerName.trim(),
     address: data.address.trim(),
     phone: typeof data.phone === "string" ? data.phone.trim() : null,
+    route:
+      typeof data.route === "string" && data.route.trim()
+        ? data.route.trim().replace(/\s+/g, " ")
+        : null,
   };
 }
 

@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
+import { StatusTabs } from "@/components/ui/StatusTabs";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   createShop,
@@ -43,6 +44,7 @@ const emptyForm = {
   ownerName: "",
   address: "",
   phone: "",
+  route: "",
 };
 
 function formatAddedBy(shop: Shop) {
@@ -82,6 +84,8 @@ export default function ShopsPage() {
   );
   const [dropDateTo, setDropDateTo] = useState("");
   const [deliveryGuyId, setDeliveryGuyId] = useState("");
+  const [statusTab, setStatusTab] = useState<"active" | "inactive">("active");
+  const [routeFilter, setRouteFilter] = useState("");
 
   const loadShops = useCallback(async () => {
     setLoading(true);
@@ -146,6 +150,7 @@ export default function ShopsPage() {
       ownerName: shop.ownerName,
       address: shop.address,
       phone: shop.phone ?? "",
+      route: shop.route ?? "",
     });
     setModalOpen(true);
   }
@@ -153,11 +158,18 @@ export default function ShopsPage() {
   async function handleSave() {
     setSaving(true);
     try {
+      const payload = {
+        name: form.name,
+        ownerName: form.ownerName,
+        address: form.address,
+        phone: form.phone,
+        route: form.route.trim() || null,
+      };
       if (editing) {
-        await updateShop(editing.id, form);
+        await updateShop(editing.id, payload);
         toast.success("Shop updated");
       } else {
-        await createShop(form);
+        await createShop(payload);
         toast.success("Shop added");
       }
       setModalOpen(false);
@@ -225,9 +237,10 @@ export default function ShopsPage() {
       sections: [
         {
           heading: "All shops",
-          headers: ["Shop", "Owner", "Address", "Status", "Added by", "Registered"],
+          headers: ["Shop", "Route", "Owner", "Address", "Status", "Added by", "Registered"],
           rows: shops.map((shop) => [
             shop.name,
+            shop.route ?? "—",
             shop.ownerName,
             shop.address,
             shop.isActive ? "Active" : "Disabled",
@@ -259,8 +272,29 @@ export default function ShopsPage() {
     toast.success("Shops PDF downloaded");
   }
 
+  const activeShops = shops.filter((shop) => shop.isActive);
+  const inactiveShops = shops.filter((shop) => !shop.isActive);
+  const routeOptions = Array.from(
+    new Set(
+      shops
+        .map((shop) => shop.route?.trim())
+        .filter((route): route is string => Boolean(route)),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
+
+  const filteredShops = (statusTab === "active" ? activeShops : inactiveShops)
+    .filter((shop) => {
+      if (!routeFilter) return true;
+      return (shop.route ?? "") === routeFilter;
+    });
+
   const shopColumns: Column<Shop>[] = [
     { key: "name", header: "Shop", render: (s) => s.name },
+    {
+      key: "route",
+      header: "Route",
+      render: (s) => s.route ?? "—",
+    },
     { key: "owner", header: "Owner", render: (s) => s.ownerName },
     { key: "address", header: "Address", render: (s) => s.address },
     { key: "phone", header: "Phone", render: (s) => s.phone ?? "—" },
@@ -380,19 +414,47 @@ export default function ShopsPage() {
       />
 
       <section>
-        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-black">
-          <HiOutlineBuildingStorefront className="h-5 w-5 text-amber-700" />
-          All shops
-        </h2>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-black">
+            <HiOutlineBuildingStorefront className="h-5 w-5 text-amber-700" />
+            All shops
+          </h2>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <StatusTabs
+              value={statusTab}
+              onChange={setStatusTab}
+              activeCount={activeShops.length}
+              inactiveCount={inactiveShops.length}
+            />
+            <Select
+              label="Filter by route"
+              value={routeFilter}
+              onChange={(e) => setRouteFilter(e.target.value)}
+              className="sm:w-56"
+            >
+              <option value="">All routes</option>
+              {routeOptions.map((route) => (
+                <option key={route} value={route}>
+                  {route}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
         <DataTable
           columns={shopColumns}
-          data={shops}
+          data={filteredShops}
           loading={loading}
           rowKey={(row) => row.id}
-          emptyMessage="No shops added yet."
+          emptyMessage={
+            statusTab === "active"
+              ? "No active shops yet."
+              : "No inactive shops."
+          }
           getSearchText={(shop) =>
             [
               shop.name,
+              shop.route,
               shop.ownerName,
               shop.address,
               shop.phone,
@@ -497,6 +559,12 @@ export default function ShopsPage() {
             required
             value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
+          />
+          <Input
+            label="Route"
+            placeholder="e.g. Route 1, Galle Road"
+            value={form.route}
+            onChange={(e) => setForm({ ...form, route: e.target.value })}
           />
           <Input
             label="Phone"

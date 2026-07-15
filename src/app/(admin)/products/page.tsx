@@ -21,6 +21,8 @@ import { ImageUpload } from "@/components/ui/ImageUpload";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Select } from "@/components/ui/Select";
+import { StatusTabs } from "@/components/ui/StatusTabs";
 import { Textarea } from "@/components/ui/Textarea";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
@@ -64,6 +66,9 @@ export default function ProductsPage() {
   const [disableTarget, setDisableTarget] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [statusTab, setStatusTab] = useState<"active" | "inactive">("active");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [sortBy, setSortBy] = useState("name-asc");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -321,6 +326,29 @@ export default function ProductsPage() {
     },
   ];
 
+  const activeProducts = products.filter((product) => product.isActive);
+  const inactiveProducts = products.filter((product) => !product.isActive);
+
+  const filteredProducts = (statusTab === "active" ? activeProducts : inactiveProducts)
+    .filter((product) => {
+      if (!categoryFilter) return true;
+      return product.category === categoryFilter;
+    })
+    .slice()
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "price-asc":
+          return Number(a.price) - Number(b.price);
+        case "price-desc":
+          return Number(b.price) - Number(a.price);
+        case "stock-desc":
+          return b.stockAvailable - a.stockAvailable;
+        case "name-asc":
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+
   return (
     <div>
       <PageHeader
@@ -360,12 +388,49 @@ export default function ProductsPage() {
         </section>
       ) : null}
 
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <StatusTabs
+          value={statusTab}
+          onChange={setStatusTab}
+          activeCount={activeProducts.length}
+          inactiveCount={inactiveProducts.length}
+        />
+        <div className="grid gap-3 sm:grid-cols-2 lg:w-[28rem]">
+          <Select
+            label="Category"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="">All categories</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.name}>
+                {category.name}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Sort by"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="name-asc">Name A–Z</option>
+            <option value="price-asc">Price low to high</option>
+            <option value="price-desc">Price high to low</option>
+            <option value="stock-desc">Stock high to low</option>
+          </Select>
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
-        data={products}
+        data={filteredProducts}
         loading={loading}
         rowKey={(row) => row.id}
-        emptyMessage="No products yet. Add your first product."
+        emptyMessage={
+          statusTab === "active"
+            ? "No active products yet. Add your first product."
+            : "No inactive products."
+        }
         getSearchText={(product) =>
           [
             product.name,

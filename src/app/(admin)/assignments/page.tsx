@@ -389,7 +389,7 @@ export default function AssignmentsPage() {
                 <option value="">Select product</option>
                 {activeProducts.map((product) => (
                   <option key={product.id} value={product.id}>
-                    {product.name} (in bakery: {product.stockAvailable})
+                    {`${product.name} (in bakery: ${product.stockAvailable})`}
                   </option>
                 ))}
               </Select>

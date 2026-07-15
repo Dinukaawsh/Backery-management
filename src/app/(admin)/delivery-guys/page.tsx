@@ -20,6 +20,7 @@ import { Column, DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { StatusTabs } from "@/components/ui/StatusTabs";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   createDeliveryGuy,
@@ -49,6 +50,7 @@ export default function DeliveryGuysPage() {
   const [disableTarget, setDisableTarget] = useState<DeliveryGuy | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeliveryGuy | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [statusTab, setStatusTab] = useState<"active" | "inactive">("active");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -231,6 +233,11 @@ export default function DeliveryGuysPage() {
     },
   ];
 
+  const activePartners = deliveryGuys.filter((guy) => guy.isActive);
+  const inactivePartners = deliveryGuys.filter((guy) => !guy.isActive);
+  const filteredPartners =
+    statusTab === "active" ? activePartners : inactivePartners;
+
   return (
     <div>
       <PageHeader
@@ -252,12 +259,25 @@ export default function DeliveryGuysPage() {
         }
       />
 
+      <div className="mb-4">
+        <StatusTabs
+          value={statusTab}
+          onChange={setStatusTab}
+          activeCount={activePartners.length}
+          inactiveCount={inactivePartners.length}
+        />
+      </div>
+
       <DataTable
         columns={columns}
-        data={deliveryGuys}
+        data={filteredPartners}
         loading={loading}
         rowKey={(row) => row.id}
-        emptyMessage="No delivery partners registered yet."
+        emptyMessage={
+          statusTab === "active"
+            ? "No active delivery partners yet."
+            : "No inactive delivery partners."
+        }
         getSearchText={(guy) =>
           [guy.name, guy.email, guy.phone, guy.isActive ? "active" : "disabled"]
             .filter(Boolean)

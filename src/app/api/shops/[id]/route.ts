@@ -34,6 +34,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       ownerName: string;
       address: string;
       phone: string | null;
+      route: string | null;
       isActive: boolean;
     }> = {};
 

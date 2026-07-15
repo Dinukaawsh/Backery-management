@@ -17,19 +17,35 @@ type SelectProps = {
   placeholder?: string;
 };
 
+function flattenLabel(node: ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(flattenLabel).join("");
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    return flattenLabel(node.props.children);
+  }
+  return "";
+}
+
 function optionsFromElements(children: ReactNode): DropdownOption[] {
   const items: DropdownOption[] = [];
   if (!children) return items;
 
   for (const child of Children.toArray(children)) {
-    if (!isValidElement<{ value?: string | number; children?: ReactNode; disabled?: boolean }>(child)) {
+    if (
+      !isValidElement<{
+        value?: string | number;
+        children?: ReactNode;
+        disabled?: boolean;
+      }>(child)
+    ) {
       continue;
     }
     if (child.props.value === undefined) continue;
 
     items.push({
       value: String(child.props.value),
-      label: String(child.props.children ?? child.props.value),
+      label: flattenLabel(child.props.children) || String(child.props.value),
       disabled: Boolean(child.props.disabled),
     });
   }

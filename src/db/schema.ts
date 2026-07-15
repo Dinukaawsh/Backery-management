@@ -47,6 +47,7 @@ export const shops = pgTable("shops", {
   ownerName: text("owner_name").notNull(),
   address: text("address").notNull(),
   phone: text("phone"),
+  route: text("route"),
   isActive: boolean("is_active").notNull().default(true),
   createdById: integer("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -29,6 +29,7 @@ export type Shop = {
   ownerName: string;
   address: string;
   phone: string | null;
+  route: string | null;
   isActive: boolean;
   createdById?: number | null;
   createdAt: string;
@@ -433,6 +434,7 @@ export async function createShop(input: {
   ownerName: string;
   address: string;
   phone?: string;
+  route?: string | null;
 }) {
   const data = await apiFetch<{ shop: Shop }>("/api/shops", {
     method: "POST",
@@ -448,6 +450,7 @@ export async function updateShop(
     ownerName: string;
     address: string;
     phone: string;
+    route: string | null;
     isActive: boolean;
   }>,
 ) {

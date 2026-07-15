@@ -11,7 +11,9 @@ import {
   HiOutlineLockClosed,
 } from "react-icons/hi2";
 
+import { LocaleToggle } from "@/components/LocaleToggle";
 import { Button } from "@/components/ui/Button";
+import { useT } from "@/lib/i18n";
 import { getBusinessSettings, login, type BusinessSettings } from "@/lib/api";
 
 const fallbackSettings: BusinessSettings = {
@@ -24,6 +26,7 @@ const fallbackSettings: BusinessSettings = {
 
 export function LoginForm() {
   const router = useRouter();
+  const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -45,14 +48,14 @@ export function LoginForm() {
     try {
       const { user } = await login(email.trim(), password);
       if (user.role !== "admin") {
-        setError("This web portal is for admin only. Delivery partners use the mobile app.");
+        setError(t("login.adminOnlyError"));
         return;
       }
       router.push("/dashboard");
       router.refresh();
     } catch (loginError) {
       setError(
-        loginError instanceof Error ? loginError.message : "Login failed",
+        loginError instanceof Error ? loginError.message : t("login.failed"),
       );
     } finally {
       setLoading(false);
@@ -78,6 +81,10 @@ export function LoginForm() {
         className="pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-orange-200/35 blur-3xl"
       />
 
+      <div className="absolute right-4 top-4 z-10 sm:right-8 sm:top-8">
+        <LocaleToggle />
+      </div>
+
       <div className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-amber-200 bg-white/90 shadow-xl backdrop-blur-sm lg:grid-cols-[1.05fr_1fr]">
         <section className="hidden flex-col justify-between bg-gradient-to-br from-amber-700 via-amber-600 to-orange-600 px-10 py-12 text-white lg:flex">
           <div>
@@ -85,7 +92,7 @@ export function LoginForm() {
               <HiOutlineBuildingStorefront className="h-8 w-8" aria-hidden />
             </div>
             <p className="mt-8 text-xs font-semibold uppercase tracking-[0.28em] text-amber-100">
-              Admin portal
+              {t("login.adminPortal")}
             </p>
             <h1 className="mt-3 text-4xl font-bold leading-tight">
               {settings.businessName}
@@ -107,10 +114,11 @@ export function LoginForm() {
                 aria-hidden
               />
               <div>
-                <p className="text-sm font-semibold">Delivery partners</p>
+                <p className="text-sm font-semibold">
+                  {t("login.deliveryPartnersTitle")}
+                </p>
                 <p className="mt-1 text-sm leading-relaxed text-amber-50/85">
-                  Delivery partners sign in through the mobile app to record shop
-                  drops and print bills on the road.
+                  {t("login.deliveryPartnersBlurb")}
                 </p>
               </div>
             </div>
@@ -128,16 +136,18 @@ export function LoginForm() {
             <p className="mt-4 text-xs font-semibold uppercase tracking-[0.24em] text-amber-700 lg:mt-0">
               {settings.businessName}
             </p>
-            <h2 className="mt-2 text-3xl font-bold text-black">Welcome back</h2>
+            <h2 className="mt-2 text-3xl font-bold text-black">
+              {t("login.welcomeBack")}
+            </h2>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-stone-600">
-              Sign in to manage products, shops, delivery partners, and daily sales.
+              {t("login.subtitle")}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label htmlFor="login-email" className="bakery-label">
-                Email
+                {t("login.email")}
               </label>
               <div className="login-input-wrap">
                 <HiOutlineEnvelope
@@ -151,14 +161,14 @@ export function LoginForm() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@bakery.com"
+                  placeholder={t("login.emailPlaceholder")}
                 />
               </div>
             </div>
 
             <div>
               <label htmlFor="login-password" className="bakery-label">
-                Password
+                {t("login.password")}
               </label>
               <div className="login-input-wrap">
                 <HiOutlineLockClosed
@@ -172,13 +182,17 @@ export function LoginForm() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder={t("login.passwordPlaceholder")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
                   className="shrink-0 rounded-lg p-1 text-stone-500 transition hover:bg-amber-50 hover:text-amber-800"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword
+                      ? t("login.hidePasswordAria")
+                      : t("login.showPasswordAria")
+                  }
                 >
                   {showPassword ? (
                     <HiOutlineEyeSlash className="h-5 w-5" aria-hidden />
@@ -204,12 +218,12 @@ export function LoginForm() {
               disabled={loading}
               className="min-h-11 rounded-xl py-2.5 text-base font-semibold"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t("login.signingIn") : t("login.signIn")}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-xs text-stone-500 lg:text-left">
-            Admin access only. Delivery staff should use the mobile app.
+            {t("login.footer")}
           </p>
         </section>
       </div>

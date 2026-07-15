@@ -3,6 +3,8 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { HiOutlineMagnifyingGlass } from "react-icons/hi2";
 
+import { useT } from "@/lib/i18n";
+
 import { Button } from "./Button";
 import { LoadingSpinner } from "./LoadingSpinner";
 
@@ -23,9 +25,10 @@ type TableSearchBarProps = {
 export function TableSearchBar({
   value,
   onChange,
-  placeholder = "Search...",
+  placeholder,
   className = "",
 }: TableSearchBarProps) {
+  const t = useT();
   return (
     <div
       className={`flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-white px-3 py-2 transition focus-within:border-[var(--border-focus)] focus-within:shadow-[0_0_0_2px_rgb(245_158_11_/_0.25)] ${className}`}
@@ -38,9 +41,9 @@ export function TableSearchBar({
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t("table.searchPlaceholder")}
         className="min-w-0 flex-1 border-0 bg-transparent text-sm text-black outline-none placeholder:text-stone-500"
-        aria-label="Search table"
+        aria-label={t("table.searchAria")}
       />
     </div>
   );
@@ -61,12 +64,13 @@ export function DataTable<T>({
   columns,
   data,
   loading,
-  emptyMessage = "No records found.",
+  emptyMessage,
   pageSize = 8,
   rowKey,
   getSearchText,
-  searchPlaceholder = "Search...",
+  searchPlaceholder,
 }: DataTableProps<T>) {
+  const t = useT();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
@@ -97,7 +101,7 @@ export function DataTable<T>({
   }, [filteredData, page, pageSize]);
 
   if (loading) {
-    return <LoadingSpinner fullPage label="Loading data..." />;
+    return <LoadingSpinner fullPage label={t("table.loading")} />;
   }
 
   return (
@@ -107,7 +111,7 @@ export function DataTable<T>({
           <TableSearchBar
             value={search}
             onChange={setSearch}
-            placeholder={searchPlaceholder}
+            placeholder={searchPlaceholder ?? t("table.searchPlaceholder")}
           />
         </div>
       ) : null}
@@ -133,7 +137,9 @@ export function DataTable<T>({
                   colSpan={columns.length}
                   className="px-4 py-8 text-center text-stone-600"
                 >
-                  {search.trim() ? "No matching records found." : emptyMessage}
+                  {search.trim()
+                    ? t("table.noMatching")
+                    : (emptyMessage ?? t("table.emptyDefault"))}
                 </td>
               </tr>
             ) : (
@@ -160,7 +166,11 @@ export function DataTable<T>({
       {filteredData.length > pageSize ? (
         <div className="flex items-center justify-between border-t border-amber-100 px-4 py-3">
           <p className="text-xs text-stone-600">
-            Page {page} of {totalPages} • {filteredData.length} total
+            {t("table.pageStatus", {
+              page,
+              totalPages,
+              total: filteredData.length,
+            })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -168,7 +178,7 @@ export function DataTable<T>({
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={page === 1}
             >
-              Previous
+              {t("table.previous")}
             </Button>
             <Button
               variant="secondary"
@@ -177,7 +187,7 @@ export function DataTable<T>({
               }
               disabled={page === totalPages}
             >
-              Next
+              {t("table.next")}
             </Button>
           </div>
         </div>

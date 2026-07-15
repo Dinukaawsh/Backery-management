@@ -34,6 +34,7 @@ import {
   updateProfile,
   type AppDownloadSettings,
 } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 function FieldLabel({
   icon: Icon,
@@ -129,6 +130,7 @@ function InfoTile({
 }
 
 export default function SettingsPage() {
+  const t = useT();
   const { settings, setSettings } = useBusinessSettings();
   const toast = useToast();
 
@@ -215,15 +217,15 @@ export default function SettingsPage() {
     if (!appDownload?.shareUrl) return;
     try {
       await navigator.clipboard.writeText(appDownload.shareUrl);
-      toast.success("Download link copied");
+      toast.success(t("settings.linkCopiedToast"));
     } catch {
-      toast.error("Could not copy link");
+      toast.error(t("settings.copyFailedToast"));
     }
   }
 
   async function handleAccountSave() {
     if (newPassword && newPassword !== confirmPassword) {
-      toast.error("New passwords do not match");
+      toast.error(t("settings.passwordsMismatch"));
       return;
     }
 
@@ -231,7 +233,7 @@ export default function SettingsPage() {
       newPassword.length > 0 || editEmail.trim() !== originalEmail;
 
     if (changingCredentials && !currentPassword) {
-      toast.error("Enter your current password to change email or password");
+      toast.error(t("settings.currentPasswordRequired"));
       return;
     }
 
@@ -253,9 +255,9 @@ export default function SettingsPage() {
       setImageUrl(result.imageUrl ?? null);
       setOriginalEmail(result.user.email);
       setAccountEditOpen(false);
-      toast.success("Account updated successfully");
+      toast.success(t("settings.accountUpdatedToast"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : t("common.updateFailed"));
     } finally {
       setLoading(false);
     }
@@ -275,11 +277,9 @@ export default function SettingsPage() {
 
       setSettings(updated);
       setBusinessEditOpen(false);
-      toast.success(
-        "Business details updated. Bills and apps will use the new info.",
-      );
+      toast.success(t("settings.businessUpdatedToast"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : t("common.updateFailed"));
     } finally {
       setLoading(false);
     }
@@ -297,9 +297,9 @@ export default function SettingsPage() {
 
       setAppDownload(updated);
       setAppDownloadEditOpen(false);
-      toast.success("App download portal updated");
+      toast.success(t("settings.appDownloadUpdatedToast"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : t("common.updateFailed"));
     } finally {
       setLoading(false);
     }
@@ -308,20 +308,20 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        title="Settings"
-        description="Business, bills, app download, and admin account."
+        title={t("settings.title")}
+        description={t("settings.description")}
       />
 
       <div className="grid gap-4 md:grid-cols-2">
         <BentoCard
           icon={HiOutlineBuildingStorefront}
-          title="Business details"
-          description="Shown on bills, login, and mobile apps."
+          title={t("settings.businessDetails")}
+          description={t("settings.businessDetailsDescription")}
           action={
             <Button variant="secondary" onClick={openBusinessEditModal}>
               <span className="inline-flex items-center gap-1.5 text-sm">
                 <HiOutlinePencilSquare className="h-4 w-4" />
-                Edit
+                {t("common.edit")}
               </span>
             </Button>
           }
@@ -338,7 +338,7 @@ export default function SettingsPage() {
             <InfoTile
               className="sm:col-span-2"
               icon={HiOutlineMapPin}
-              label="Address"
+              label={t("common.address")}
               value={
                 <span className="whitespace-pre-line">
                   {settings.address || "—"}
@@ -347,18 +347,18 @@ export default function SettingsPage() {
             />
             <InfoTile
               icon={HiOutlinePhone}
-              label="Phone"
+              label={t("common.phone")}
               value={settings.phone || "—"}
             />
             <InfoTile
               icon={HiOutlineEnvelope}
-              label="Email"
+              label={t("common.email")}
               value={settings.email || "—"}
             />
             <InfoTile
               className="sm:col-span-2"
               icon={HiOutlineIdentification}
-              label="Owner name"
+              label={t("settings.ownerName")}
               value={settings.ownerName || "—"}
             />
           </div>
@@ -366,8 +366,8 @@ export default function SettingsPage() {
 
         <BentoCard
           icon={HiOutlineUserCircle}
-          title="Account"
-          description="Your admin login and profile."
+          title={t("settings.account")}
+          description={t("settings.accountDescription")}
           accent="gradient"
           action={
             <Button
@@ -377,7 +377,7 @@ export default function SettingsPage() {
             >
               <span className="inline-flex items-center gap-1.5 text-sm">
                 <HiOutlinePencilSquare className="h-4 w-4" />
-                Edit
+                {t("common.edit")}
               </span>
             </Button>
           }
@@ -397,7 +397,7 @@ export default function SettingsPage() {
             </div>
             <div className="min-w-0">
               <p className="truncate text-lg font-bold text-black">
-                {name || "Admin"}
+                {name || t("common.admin")}
               </p>
               <p className="truncate text-sm text-stone-600">{email || "—"}</p>
               <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-900">
@@ -407,9 +407,21 @@ export default function SettingsPage() {
             </div>
           </div>
           <div className="grid flex-1 gap-3 sm:grid-cols-2">
-            <InfoTile icon={HiOutlineUser} label="Full name" value={name || "—"} />
-            <InfoTile icon={HiOutlineEnvelope} label="Email" value={email || "—"} />
-            <InfoTile icon={HiOutlinePhone} label="Phone" value={phone || "—"} />
+            <InfoTile
+              icon={HiOutlineUser}
+              label={t("deliveryGuys.formFullName")}
+              value={name || "—"}
+            />
+            <InfoTile
+              icon={HiOutlineEnvelope}
+              label={t("common.email")}
+              value={email || "—"}
+            />
+            <InfoTile
+              icon={HiOutlinePhone}
+              label={t("common.phone")}
+              value={phone || "—"}
+            />
             <InfoTile
               icon={HiOutlineCog6Tooth}
               label="Role"
@@ -420,20 +432,22 @@ export default function SettingsPage() {
 
         <BentoCard
           icon={HiOutlineDevicePhoneMobile}
-          title="Delivery app download"
-          description="Public link + separate login for APK download."
+          title={t("settings.appDownload")}
+          description={t("settings.appDownloadDescription")}
           action={
             <Button variant="secondary" onClick={openAppDownloadEditModal}>
               <span className="inline-flex items-center gap-1.5 text-sm">
                 <HiOutlinePencilSquare className="h-4 w-4" />
-                Configure
+                {t("common.configure")}
               </span>
             </Button>
           }
         >
           <div className="grid flex-1 gap-3">
             <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3">
-              <FieldLabel icon={HiOutlineLink}>Share link</FieldLabel>
+              <FieldLabel icon={HiOutlineLink}>
+                {t("settings.shareLink")}
+              </FieldLabel>
               <div className="mt-1 flex flex-col gap-2">
                 <p className="bakery-field-value line-clamp-2 break-all text-sm">
                   {appDownload?.shareUrl ?? "—"}
@@ -444,21 +458,23 @@ export default function SettingsPage() {
                     onClick={() => void copyShareUrl()}
                     className="w-full"
                   >
-                    Copy
+                    {t("common.copy")}
                   </Button>
                 ) : null}
               </div>
             </div>
             <InfoTile
               icon={HiOutlineUser}
-              label="Download username"
+              label={t("settings.downloadUsername")}
               value={appDownload?.username || "—"}
             />
             <InfoTile
               icon={HiOutlineCog6Tooth}
-              label="Status"
+              label={t("common.status")}
               value={
-                appDownload?.enabled ? "Ready for delivery partners" : "Not configured"
+                appDownload?.enabled
+                  ? t("settings.appStatusReady")
+                  : t("settings.appStatusNotConfigured")
               }
             />
           </div>
@@ -466,8 +482,8 @@ export default function SettingsPage() {
 
         <BentoCard
           icon={HiOutlineDocumentText}
-          title="Shop bill preview"
-          description="Sample bill delivery partners hand to shops."
+          title={t("settings.billPreview")}
+          description={t("settings.billPreviewDescription")}
           action={
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-900">
               Sample
@@ -476,15 +492,14 @@ export default function SettingsPage() {
         >
           <BillPreview settings={settings} className="mx-auto max-w-full" />
           <p className="mt-3 text-center text-[10px] leading-snug text-stone-500">
-            Uses your business details above. Real bills show actual shop,
-            products, and totals from each delivery.
+            {t("settings.billPreviewHint")}
           </p>
         </BentoCard>
       </div>
 
       <Modal
         open={businessEditOpen}
-        title="Edit business details"
+        title={t("settings.editBusinessTitle")}
         onClose={() => setBusinessEditOpen(false)}
         size="lg"
         footer={
@@ -494,59 +509,61 @@ export default function SettingsPage() {
               fullWidth
               onClick={() => setBusinessEditOpen(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               fullWidth
               onClick={() => void handleBusinessSave()}
               disabled={loading}
             >
-              {loading ? "Saving..." : "Save business details"}
+              {loading
+                ? t("common.saving")
+                : t("settings.saveBusinessDetails")}
             </Button>
           </div>
         }
       >
         <div className="space-y-4">
           <Input
-            label="Business name"
+            label={t("settings.businessName")}
             required
             value={editBusinessName}
             onChange={(e) => setEditBusinessName(e.target.value)}
-            placeholder="e.g. Sunrise Bakery"
+            placeholder={t("settings.businessNamePlaceholder")}
           />
           <Textarea
-            label="Address"
+            label={t("settings.address")}
             required
             value={editBusinessAddress}
             onChange={(e) => setEditBusinessAddress(e.target.value)}
-            placeholder="Street, city, postal code"
+            placeholder={t("settings.addressPlaceholder")}
           />
           <Input
-            label="Phone"
+            label={t("settings.phone")}
             required
             value={editBusinessPhone}
             onChange={(e) => setEditBusinessPhone(e.target.value)}
-            placeholder="Contact number on bills"
+            placeholder={t("settings.phonePlaceholder")}
           />
           <Input
-            label="Email"
+            label={t("settings.email")}
             type="email"
             value={editBusinessEmail}
             onChange={(e) => setEditBusinessEmail(e.target.value)}
-            placeholder="Optional"
+            placeholder={t("common.optional")}
           />
           <Input
-            label="Owner name"
+            label={t("settings.ownerName")}
             value={editOwnerName}
             onChange={(e) => setEditOwnerName(e.target.value)}
-            placeholder="Optional — shown on printed bills"
+            placeholder={t("settings.ownerNamePlaceholder")}
           />
         </div>
       </Modal>
 
       <Modal
         open={appDownloadEditOpen}
-        title="Delivery app download"
+        title={t("settings.appDownloadModalTitle")}
         onClose={() => setAppDownloadEditOpen(false)}
         size="lg"
         footer={
@@ -556,35 +573,36 @@ export default function SettingsPage() {
               fullWidth
               onClick={() => setAppDownloadEditOpen(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               fullWidth
               onClick={() => void handleAppDownloadSave()}
               disabled={loading}
             >
-              {loading ? "Saving..." : "Save download settings"}
+              {loading
+                ? t("common.saving")
+                : t("settings.saveDownloadSettings")}
             </Button>
           </div>
         }
       >
         <div className="space-y-4">
           <p className="text-sm text-stone-600">
-            These credentials are only for downloading the mobile app. They are
-            not linked to admin or delivery partner logins.
+            {t("settings.appDownloadCredentialsHint")}
           </p>
           <Input
-            label="Download username"
+            label={t("settings.downloadUsername")}
             required
             value={editDownloadUsername}
             onChange={(e) => setEditDownloadUsername(e.target.value)}
-            placeholder="e.g. delivery"
+            placeholder={t("settings.downloadUsernamePlaceholder")}
           />
           <Input
             label={
               appDownload?.hasPassword
-                ? "Download password (leave blank to keep current)"
-                : "Download password"
+                ? t("settings.downloadPasswordKeepCurrent")
+                : t("settings.downloadPassword")
             }
             type="password"
             required={!appDownload?.hasPassword}
@@ -593,22 +611,19 @@ export default function SettingsPage() {
             onChange={(e) => setEditDownloadPassword(e.target.value)}
           />
           <Input
-            label="APK link (Google Drive or direct URL)"
+            label={t("settings.apkLink")}
             required
             value={editDownloadUrl}
             onChange={(e) => setEditDownloadUrl(e.target.value)}
-            placeholder="https://drive.google.com/file/d/..."
+            placeholder={t("settings.apkLinkPlaceholder")}
           />
-          <p className="text-xs text-stone-500">
-            Upload your APK to Google Drive, set sharing to &quot;Anyone with
-            the link&quot;, then paste the share link here.
-          </p>
+          <p className="text-xs text-stone-500">{t("settings.apkLinkHelp")}</p>
         </div>
       </Modal>
 
       <Modal
         open={accountEditOpen}
-        title="Edit account"
+        title={t("settings.editAccountTitle")}
         onClose={() => setAccountEditOpen(false)}
         size="lg"
         footer={
@@ -618,39 +633,39 @@ export default function SettingsPage() {
               fullWidth
               onClick={() => setAccountEditOpen(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               fullWidth
               onClick={() => void handleAccountSave()}
               disabled={loading}
             >
-              {loading ? "Saving..." : "Save changes"}
+              {loading ? t("common.saving") : t("common.saveChanges")}
             </Button>
           </div>
         }
       >
         <div className="space-y-4">
           <ImageUpload
-            label="Profile photo"
+            label={t("settings.profilePhoto")}
             value={editImageUrl}
             onChange={setEditImageUrl}
           />
           <Input
-            label="Name"
+            label={t("settings.formName")}
             required
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
           />
           <Input
-            label="Email"
+            label={t("common.email")}
             required
             type="email"
             value={editEmail}
             onChange={(e) => setEditEmail(e.target.value)}
           />
           <Input
-            label="Phone"
+            label={t("common.phone")}
             value={editPhone}
             onChange={(e) => setEditPhone(e.target.value)}
           />
@@ -658,24 +673,24 @@ export default function SettingsPage() {
           <hr className="border-amber-100" />
 
           <p className="text-sm text-stone-600">
-            Enter your current password when changing email or password.
+            {t("settings.passwordChangeHint")}
           </p>
           <Input
-            label="Current password"
+            label={t("settings.currentPassword")}
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
           />
           <Input
-            label="New password"
+            label={t("settings.newPassword")}
             type="password"
             minLength={6}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Leave blank to keep current"
+            placeholder={t("settings.newPasswordPlaceholder")}
           />
           <Input
-            label="Confirm new password"
+            label={t("settings.confirmNewPassword")}
             type="password"
             minLength={6}
             value={confirmPassword}

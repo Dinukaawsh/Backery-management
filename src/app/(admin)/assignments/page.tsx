@@ -29,11 +29,13 @@ import {
   type Product,
 } from "@/lib/api";
 import { downloadPdf } from "@/lib/export-pdf";
+import { useT } from "@/lib/i18n";
 
 type AssignLine = { productId: string; quantity: string };
 
 export default function AssignmentsPage() {
   const toast = useToast();
+  const t = useT();
   const { settings } = useBusinessSettings();
   const [date, setDate] = useState(() => {
     const now = new Date();
@@ -66,24 +68,28 @@ export default function AssignmentsPage() {
       setSummary(data.summary);
       setAllocations(data.allocations);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : t("common.failedToLoad"));
     } finally {
       setLoading(false);
     }
-  }, [date, deliveryGuyId]);
+  }, [date, deliveryGuyId, toast, t]);
 
   useEffect(() => {
     void fetchDeliveryGuys()
       .then(setDeliveryGuys)
       .catch((err) =>
-        toast.error(err instanceof Error ? err.message : "Failed to load delivery partners"),
+        toast.error(
+          err instanceof Error ? err.message : t("assignments.failedLoadPartners"),
+        ),
       );
     void fetchProducts()
       .then(setProducts)
       .catch((err) =>
-        toast.error(err instanceof Error ? err.message : "Failed to load products"),
+        toast.error(
+          err instanceof Error ? err.message : t("assignments.failedLoadProducts"),
+        ),
       );
-  }, []);
+  }, [toast, t]);
 
   useEffect(() => {
     void load();
@@ -91,7 +97,7 @@ export default function AssignmentsPage() {
 
   async function handleAssign() {
     if (!assignGuyId) {
-      toast.error("Select a delivery partner");
+      toast.error(t("assignments.selectPartnerError"));
       return;
     }
 
@@ -103,7 +109,7 @@ export default function AssignmentsPage() {
       .filter((line) => line.productId > 0 && line.quantity > 0);
 
     if (items.length === 0) {
-      toast.error("Add at least one product with quantity");
+      toast.error(t("assignments.addProductError"));
       return;
     }
 
@@ -116,10 +122,10 @@ export default function AssignmentsPage() {
       });
       setModalOpen(false);
       setLines([{ productId: "", quantity: "" }]);
-      toast.success("Stock assigned to delivery partner");
+      toast.success(t("assignments.assignedToast"));
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Assign failed");
+      toast.error(err instanceof Error ? err.message : t("assignments.assignFailed"));
     } finally {
       setSaving(false);
     }
@@ -131,10 +137,10 @@ export default function AssignmentsPage() {
     try {
       await deleteAllocation(deleteTarget.id);
       setDeleteTarget(null);
-      toast.success("Assignment removed and stock returned");
+      toast.success(t("assignments.removedToast"));
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
+      toast.error(err instanceof Error ? err.message : t("common.deleteFailed"));
     } finally {
       setDeleting(false);
     }
@@ -142,29 +148,29 @@ export default function AssignmentsPage() {
 
   function handleExportPdf() {
     if (!summary.length && !allocations.length) {
-      toast.error("No assignment data to export for this date");
+      toast.error(t("assignments.noExport"));
       return;
     }
 
     const guy = deliveryGuys.find((item) => String(item.id) === deliveryGuyId);
     const filterLabel = guy
-      ? `Date: ${date}  •  Delivery partner: ${guy.name}`
-      : `Date: ${date}  •  All delivery partners`;
+      ? t("assignments.pdfFilterPartner", { date, name: guy.name })
+      : t("assignments.pdfFilterAll", { date });
 
     downloadPdf({
       filename: "stock-assignments",
-      title: "Stock Assignments Report",
+      title: t("assignments.pdfTitle"),
       subtitle: filterLabel,
       business: settings,
       sections: [
         {
-          heading: "Assigned vs sold summary",
+          heading: t("assignments.pdfSummaryHeading"),
           headers: [
-            "Delivery Partner",
-            "Product",
-            "Given",
-            "Sold",
-            "Remaining",
+            t("assignments.colPartner"),
+            t("assignments.colProduct"),
+            t("assignments.colGiven"),
+            t("assignments.colSold"),
+            t("assignments.colRemaining"),
           ],
           rows: summary.map((row) => [
             row.deliveryGuyName,
@@ -175,8 +181,13 @@ export default function AssignmentsPage() {
           ]),
         },
         {
-          heading: "Assignment history",
-          headers: ["Delivery Partner", "Product", "Quantity", "Assigned at"],
+          heading: t("assignments.pdfHistoryHeading"),
+          headers: [
+            t("assignments.colPartner"),
+            t("assignments.colProduct"),
+            t("assignments.colQuantity"),
+            t("assignments.colAssignedAt"),
+          ],
           rows: allocations.map((row) => [
             row.deliveryGuyName,
             row.productName,
@@ -186,21 +197,29 @@ export default function AssignmentsPage() {
         },
       ],
     });
-    toast.success("Assignments PDF downloaded");
+    toast.success(t("assignments.pdfDownloadedToast"));
   }
 
   const summaryColumns: Column<AllocationSummary>[] = [
     {
       key: "guy",
-      header: "Delivery partner",
+      header: t("assignments.colPartner"),
       render: (row) => row.deliveryGuyName,
     },
-    { key: "product", header: "Product", render: (row) => row.productName },
-    { key: "allocated", header: "Given", render: (row) => row.allocated },
-    { key: "sold", header: "Sold", render: (row) => row.sold },
+    {
+      key: "product",
+      header: t("assignments.colProduct"),
+      render: (row) => row.productName,
+    },
+    {
+      key: "allocated",
+      header: t("assignments.colGiven"),
+      render: (row) => row.allocated,
+    },
+    { key: "sold", header: t("assignments.colSold"), render: (row) => row.sold },
     {
       key: "remaining",
-      header: "Remaining",
+      header: t("assignments.colRemaining"),
       render: (row) => (
         <span className={row.remaining === 0 ? "text-stone-500" : "font-medium"}>
           {row.remaining}
@@ -212,19 +231,27 @@ export default function AssignmentsPage() {
   const allocationColumns: Column<AllocationRecord>[] = [
     {
       key: "guy",
-      header: "Delivery partner",
+      header: t("assignments.colPartner"),
       render: (row) => row.deliveryGuyName,
     },
-    { key: "product", header: "Product", render: (row) => row.productName },
-    { key: "qty", header: "Quantity", render: (row) => row.quantity },
+    {
+      key: "product",
+      header: t("assignments.colProduct"),
+      render: (row) => row.productName,
+    },
+    {
+      key: "qty",
+      header: t("assignments.colQuantity"),
+      render: (row) => row.quantity,
+    },
     {
       key: "time",
-      header: "Assigned at",
+      header: t("assignments.colAssignedAt"),
       render: (row) => new Date(row.createdAt).toLocaleString(),
     },
     {
       key: "actions",
-      header: "Actions",
+      header: t("assignments.colActions"),
       render: (row) => (
         <button
           type="button"
@@ -232,7 +259,7 @@ export default function AssignmentsPage() {
           onClick={() => setDeleteTarget(row)}
         >
           <HiOutlineTrash className="h-4 w-4 shrink-0" aria-hidden />
-          Remove
+          {t("common.remove")}
         </button>
       ),
     },
@@ -243,8 +270,8 @@ export default function AssignmentsPage() {
   return (
     <div>
       <PageHeader
-        title="Stock Assignments"
-        description="Give products to delivery partners each day. They sell from this assigned stock via the mobile app."
+        title={t("assignments.title")}
+        description={t("assignments.description")}
         action={
           <PageHeaderActions>
             <DownloadPdfButton
@@ -257,7 +284,7 @@ export default function AssignmentsPage() {
                 setModalOpen(true);
               }}
             >
-              + Assign stock
+              {t("assignments.assignStock")}
             </Button>
           </PageHeaderActions>
         }
@@ -265,16 +292,16 @@ export default function AssignmentsPage() {
 
       <div className="mb-6 grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm md:grid-cols-2">
         <DateInput
-          label="Date"
+          label={t("assignments.date")}
           value={date}
           onChange={(e) => setDate(e.target.value)}
         />
         <Select
-          label="Filter by delivery partner"
+          label={t("assignments.filterByPartner")}
           value={deliveryGuyId}
           onChange={(e) => setDeliveryGuyId(e.target.value)}
         >
-          <option value="">All delivery partners</option>
+          <option value="">{t("assignments.allPartners")}</option>
           {deliveryGuys.map((guy) => (
             <option key={guy.id} value={guy.id}>
               {guy.name}
@@ -284,14 +311,14 @@ export default function AssignmentsPage() {
       </div>
 
       <h2 className="mb-3 text-lg font-semibold text-black">
-        Assigned vs sold summary
+        {t("assignments.summaryTitle")}
       </h2>
       <DataTable
         columns={summaryColumns}
         data={summary}
         loading={loading}
         rowKey={(row) => `${row.deliveryGuyId}-${row.productId}`}
-        emptyMessage="No stock assigned for this date yet."
+        emptyMessage={t("assignments.emptySummary")}
         pageSize={10}
         getSearchText={(row) =>
           [
@@ -302,18 +329,18 @@ export default function AssignmentsPage() {
             row.remaining,
           ].join(" ")
         }
-        searchPlaceholder="Search summary..."
+        searchPlaceholder={t("assignments.searchSummary")}
       />
 
       <h2 className="mb-3 mt-8 text-lg font-semibold text-black">
-        Assignment history
+        {t("assignments.historyTitle")}
       </h2>
       <DataTable
         columns={allocationColumns}
         data={allocations}
         loading={loading}
         rowKey={(row) => row.id}
-        emptyMessage="No individual assignments recorded."
+        emptyMessage={t("assignments.emptyHistory")}
         pageSize={8}
         getSearchText={(row) =>
           [
@@ -323,62 +350,60 @@ export default function AssignmentsPage() {
             new Date(row.createdAt).toLocaleString(),
           ].join(" ")
         }
-        searchPlaceholder="Search assignment history..."
+        searchPlaceholder={t("assignments.searchHistory")}
       />
 
       <Modal
         open={modalOpen}
-        title="Assign stock to delivery partner"
+        title={t("assignments.assignStockModal")}
         onClose={() => setModalOpen(false)}
         size="lg"
         footer={
           <div className="grid grid-cols-2 gap-3">
             <Button variant="secondary" fullWidth onClick={() => setModalOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button fullWidth onClick={() => void handleAssign()} disabled={saving}>
-              {saving ? "Assigning..." : "Assign stock"}
+              {saving ? t("assignments.assigning") : t("assignments.assignStockButton")}
             </Button>
           </div>
         }
       >
         <div className="space-y-4">
           <Select
-            label="Delivery partner"
+            label={t("common.deliveryPartner")}
             value={assignGuyId}
             onChange={(e) => setAssignGuyId(e.target.value)}
           >
-            <option value="">Select delivery partner</option>
+            <option value="">{t("assignments.selectPartner")}</option>
             {deliveryGuys.map((guy) => (
               <option key={guy.id} value={guy.id} disabled={!guy.isActive}>
                 {guy.name}
-                {!guy.isActive ? " (disabled)" : ""}
+                {!guy.isActive ? t("assignments.partnerDisabledSuffix") : ""}
               </option>
             ))}
           </Select>
 
           {deliveryGuys.length === 0 ? (
             <p className="text-sm text-amber-800">
-              No delivery partners registered yet. Add one from the Delivery Partners page.
+              {t("assignments.noPartnersRegistered")}
             </p>
           ) : null}
           {deliveryGuys.length > 0 &&
           deliveryGuys.every((guy) => !guy.isActive) ? (
             <p className="text-sm text-amber-800">
-              All delivery partners are disabled. Enable one from the Delivery Partners page
-              to assign stock.
+              {t("assignments.allPartnersDisabled")}
             </p>
           ) : null}
 
           <p className="text-sm text-stone-600">
-            Assigning for <strong>{date}</strong>. Stock is taken from bakery
-            inventory.
+            {t("assignments.assigningForDate", { date })}
           </p>
 
           {lines.map((line, index) => (
             <div key={index} className="grid gap-3 sm:grid-cols-2">
               <Select
-                label="Product"
+                label={t("common.product")}
                 value={line.productId}
                 onChange={(e) => {
                   const next = [...lines];
@@ -386,15 +411,18 @@ export default function AssignmentsPage() {
                   setLines(next);
                 }}
               >
-                <option value="">Select product</option>
+                <option value="">{t("assignments.selectProduct")}</option>
                 {activeProducts.map((product) => (
                   <option key={product.id} value={product.id}>
-                    {`${product.name} (in bakery: ${product.stockAvailable})`}
+                    {t("assignments.productStockOption", {
+                      name: product.name,
+                      stock: product.stockAvailable,
+                    })}
                   </option>
                 ))}
               </Select>
               <Input
-                label="Quantity"
+                label={t("common.quantity")}
                 type="number"
                 min="1"
                 value={line.quantity}
@@ -413,17 +441,21 @@ export default function AssignmentsPage() {
               setLines((current) => [...current, { productId: "", quantity: "" }])
             }
           >
-            + Add another product
+            {t("assignments.addAnotherProduct")}
           </Button>
         </div>
       </Modal>
 
       <ConfirmModal
         open={deleteTarget !== null}
-        title="Remove assignment"
-        message={`Remove ${deleteTarget?.quantity} × ${deleteTarget?.productName} from ${deleteTarget?.deliveryGuyName}? Unsold stock returns to bakery inventory.`}
-        confirmLabel="Remove"
-        cancelLabel="Cancel"
+        title={t("assignments.removeTitle")}
+        message={t("assignments.removeMessage", {
+          quantity: deleteTarget?.quantity ?? 0,
+          productName: deleteTarget?.productName ?? "",
+          deliveryGuyName: deleteTarget?.deliveryGuyName ?? "",
+        })}
+        confirmLabel={t("common.remove")}
+        cancelLabel={t("common.cancel")}
         variant="danger"
         loading={deleting}
         onConfirm={() => void confirmDeleteAllocation()}

@@ -8,6 +8,7 @@ import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getSale, markBillPrinted, type Sale } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
 
 export default function BillPage({
   params,
@@ -16,6 +17,7 @@ export default function BillPage({
 }) {
   const { settings } = useBusinessSettings();
   const toast = useToast();
+  const t = useT();
   const [saleId, setSaleId] = useState<string | null>(null);
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,17 +39,19 @@ export default function BillPage({
         setLoading(false);
       })
       .catch((err) => {
-        toast.error(err instanceof Error ? err.message : "Failed to load bill");
+        toast.error(
+          err instanceof Error ? err.message : t("bill.failedToLoad"),
+        );
         setLoading(false);
       });
   }, [saleId]);
 
   if (loading) {
-    return <p className="p-8">Loading bill...</p>;
+    return <p className="p-8">{t("bill.loading")}</p>;
   }
 
   if (!sale) {
-    return <p className="p-8 text-stone-600">Bill not available.</p>;
+    return <p className="p-8 text-stone-600">{t("bill.notAvailable")}</p>;
   }
 
   return (
@@ -55,7 +59,7 @@ export default function BillPage({
       <div className="mb-6 flex items-start justify-between gap-4">
         <BillBusinessHeader
           settings={settings}
-          subtitle={`Delivery Bill #${sale.id}`}
+          subtitle={t("bill.titleWithId", { id: sale.id })}
         />
         <button
           type="button"
@@ -63,20 +67,20 @@ export default function BillPage({
           className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-amber-700 px-4 py-2 text-sm text-white print:hidden"
         >
           <HiOutlinePrinter className="h-4 w-4" />
-          Print
+          {t("bill.print")}
         </button>
       </div>
 
       <div className="grid gap-4 border-t border-amber-100 pt-6 text-sm sm:grid-cols-2">
         <div>
-          <p className="font-semibold">Shop</p>
+          <p className="font-semibold">{t("bill.shop")}</p>
           <p>{sale.shopName}</p>
           {sale.shopOwner ? <p>{sale.shopOwner}</p> : null}
           {sale.shopAddress ? <p>{sale.shopAddress}</p> : null}
           {sale.shopPhone ? <p>{sale.shopPhone}</p> : null}
         </div>
         <div>
-          <p className="font-semibold">Delivery</p>
+          <p className="font-semibold">{t("bill.delivery")}</p>
           <p>{sale.deliveryGuyName}</p>
           <p>{new Date(sale.saleDate).toLocaleString()}</p>
         </div>
@@ -85,10 +89,10 @@ export default function BillPage({
       <table className="mt-8 w-full text-sm">
         <thead>
           <tr className="border-b">
-            <th className="py-2 text-left">Product</th>
-            <th className="py-2 text-right">Qty</th>
-            <th className="py-2 text-right">Price (Rs)</th>
-            <th className="py-2 text-right">Total (Rs)</th>
+            <th className="py-2 text-left">{t("bill.product")}</th>
+            <th className="py-2 text-right">{t("bill.qty")}</th>
+            <th className="py-2 text-right">{t("bill.priceRs")}</th>
+            <th className="py-2 text-right">{t("bill.totalRs")}</th>
           </tr>
         </thead>
         <tbody>
@@ -108,15 +112,17 @@ export default function BillPage({
       </table>
 
       <div className="mt-6 flex justify-end text-lg font-bold">
-        Total (Rs): {formatCurrency(sale.totalAmount)}
+        {t("bill.totalRsLabel", { amount: formatCurrency(sale.totalAmount) })}
       </div>
 
       {sale.notes ? (
-        <p className="mt-4 text-sm text-gray-600">Notes: {sale.notes}</p>
+        <p className="mt-4 text-sm text-gray-600">
+          {t("common.notes", { notes: sale.notes })}
+        </p>
       ) : null}
 
       <p className="mt-8 text-center text-xs text-stone-500">
-        Thank you for your business
+        {t("bill.thankYou")}
       </p>
     </div>
   );

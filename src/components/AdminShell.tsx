@@ -16,34 +16,43 @@ import {
   HiOutlineTruck,
 } from "react-icons/hi2";
 
+import { LocaleToggle } from "@/components/LocaleToggle";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
+import { useT } from "@/lib/i18n";
 import { logout } from "@/lib/api";
 
-const navItems: Array<{ href: string; label: string; icon: IconType }> = [
-  { href: "/dashboard", label: "Dashboard", icon: HiOutlineChartBarSquare },
-  { href: "/products", label: "Products", icon: HiOutlineCube },
-  { href: "/sales", label: "Sales", icon: HiOutlineCurrencyDollar },
-  { href: "/delivery-guys", label: "Delivery Partners", icon: HiOutlineTruck },
+const navHrefs: Array<{ href: string; key: string; icon: IconType }> = [
+  { href: "/dashboard", key: "nav.dashboard", icon: HiOutlineChartBarSquare },
+  { href: "/products", key: "nav.products", icon: HiOutlineCube },
+  { href: "/sales", key: "nav.sales", icon: HiOutlineCurrencyDollar },
+  {
+    href: "/delivery-guys",
+    key: "nav.deliveryPartners",
+    icon: HiOutlineTruck,
+  },
   {
     href: "/assignments",
-    label: "Stock Assignments",
+    key: "nav.stockAssignments",
     icon: HiOutlineClipboardDocumentList,
   },
-  { href: "/shops", label: "Shops", icon: HiOutlineBuildingStorefront },
-  { href: "/settings", label: "Settings", icon: HiOutlineCog6Tooth },
+  { href: "/shops", key: "nav.shops", icon: HiOutlineBuildingStorefront },
+  { href: "/settings", key: "nav.settings", icon: HiOutlineCog6Tooth },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { settings } = useBusinessSettings();
+  const t = useT();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const currentPage =
-    navItems.find((item) => pathname.startsWith(item.href))?.label ?? "Admin";
+  const currentPageKey =
+    navHrefs.find((item) => pathname.startsWith(item.href))?.key ??
+    "nav.adminFallback";
+  const currentPage = t(currentPageKey as Parameters<typeof t>[0]);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -62,7 +71,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {sidebarOpen ? (
         <button
           type="button"
-          aria-label="Close sidebar"
+          aria-label={t("shell.closeSidebarAria")}
           className="fixed inset-0 z-30 bg-black/30 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -76,12 +85,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <HiOutlineBuildingStorefront className="h-4 w-4" />
             {settings.businessName}
           </p>
-          <h1 className="mt-1 text-xl font-bold text-black">Admin Panel</h1>
+          <h1 className="mt-1 text-xl font-bold text-black">
+            {t("shell.adminPanel")}
+          </h1>
         </div>
 
         <nav className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4">
           <div className="flex flex-col gap-1">
-            {navItems.map((item) => {
+            {navHrefs.map((item) => {
               const active = pathname.startsWith(item.href);
               const Icon = item.icon;
               return (
@@ -96,7 +107,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <Icon className="h-5 w-5 shrink-0" aria-hidden />
-                  {item.label}
+                  {t(item.key as Parameters<typeof t>[0])}
                 </Link>
               );
             })}
@@ -110,7 +121,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
           >
             <HiOutlineArrowRightOnRectangle className="h-5 w-5 shrink-0" />
-            Logout
+            {t("shell.logout")}
           </button>
         </div>
       </aside>
@@ -124,7 +135,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               onClick={() => setSidebarOpen(true)}
             >
               <HiOutlineBars3 className="h-5 w-5" />
-              Menu
+              {t("shell.menu")}
             </button>
             <div>
               <p className="text-xs uppercase tracking-wide text-stone-500">
@@ -133,14 +144,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <h2 className="text-lg font-semibold text-black">{currentPage}</h2>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setLogoutOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-amber-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50 lg:hidden"
-          >
-            <HiOutlineArrowRightOnRectangle className="h-5 w-5" />
-            Logout
-          </button>
+          <div className="flex items-center gap-2">
+            <LocaleToggle />
+            <button
+              type="button"
+              onClick={() => setLogoutOpen(true)}
+              className="flex items-center gap-2 rounded-lg border border-amber-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50 lg:hidden"
+            >
+              <HiOutlineArrowRightOnRectangle className="h-5 w-5" />
+              {t("shell.logout")}
+            </button>
+          </div>
         </header>
 
         <main className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
@@ -150,10 +164,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
       <ConfirmModal
         open={logoutOpen}
-        title="Logout"
-        message="Are you sure you want to logout from the admin panel?"
-        confirmLabel="Logout"
-        cancelLabel="Cancel"
+        title={t("shell.logoutConfirmTitle")}
+        message={t("shell.logoutConfirmMessage")}
+        confirmLabel={t("shell.logout")}
+        cancelLabel={t("common.cancel")}
         variant="danger"
         loading={loggingOut}
         onConfirm={() => void handleLogout()}

@@ -37,6 +37,7 @@ import {
 } from "@/lib/api";
 import { downloadPdf } from "@/lib/export-pdf";
 import { formatCurrency } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
 
 const emptyForm = {
   name: "",
@@ -49,6 +50,7 @@ const emptyForm = {
 
 export default function ProductsPage() {
   const toast = useToast();
+  const t = useT();
   const { settings } = useBusinessSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
@@ -80,11 +82,11 @@ export default function ProductsPage() {
       setProducts(productRows);
       setCategories(categoryRows);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : t("common.failedToLoad"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t, toast]);
 
   useEffect(() => {
     void load();
@@ -111,7 +113,7 @@ export default function ProductsPage() {
 
   async function handleSave() {
     if (!form.category.trim()) {
-      toast.error("Category is required");
+      toast.error(t("products.categoryRequired"));
       return;
     }
 
@@ -127,15 +129,15 @@ export default function ProductsPage() {
       };
       if (editing) {
         await updateProduct(editing.id, payload);
-        toast.success("Product updated");
+        toast.success(t("products.updatedToast"));
       } else {
         await createProduct(payload);
-        toast.success("Product added");
+        toast.success(t("products.addedToast"));
       }
       setModalOpen(false);
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -150,7 +152,7 @@ export default function ProductsPage() {
   async function handleRenameCategory() {
     if (!editingCategory) return;
     if (!categoryName.trim()) {
-      toast.error("Category name is required");
+      toast.error(t("products.categoryNameRequired"));
       return;
     }
 
@@ -163,10 +165,10 @@ export default function ProductsPage() {
       setCategories(updated);
       setCategoryModalOpen(false);
       setEditingCategory(null);
-      toast.success("Category renamed");
+      toast.success(t("products.categoryRenamedToast"));
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Rename failed");
+      toast.error(err instanceof Error ? err.message : t("products.renameFailed"));
     } finally {
       setSaving(false);
     }
@@ -181,11 +183,13 @@ export default function ProductsPage() {
       });
       setDisableTarget(null);
       toast.success(
-        disableTarget.isActive ? "Product disabled" : "Product enabled",
+        disableTarget.isActive
+          ? t("products.disabledToast")
+          : t("products.enabledToast"),
       );
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : t("common.updateFailed"));
     } finally {
       setActionLoading(false);
     }
@@ -197,10 +201,10 @@ export default function ProductsPage() {
     try {
       await deleteProduct(deleteTarget.id);
       setDeleteTarget(null);
-      toast.success("Product deleted");
+      toast.success(t("products.deletedToast"));
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
+      toast.error(err instanceof Error ? err.message : t("common.deleteFailed"));
     } finally {
       setDeleting(false);
     }
@@ -208,36 +212,43 @@ export default function ProductsPage() {
 
   function handleExportPdf() {
     if (!products.length) {
-      toast.error("No products to export");
+      toast.error(t("products.noExport"));
       return;
     }
 
     downloadPdf({
       filename: "products-list",
-      title: "Products List",
-      subtitle: `${products.length} product(s)`,
+      title: t("products.pdfTitle"),
+      subtitle: t("products.pdfSubtitle", { count: products.length }),
       business: settings,
       sections: [
         {
-          headers: ["Product", "Category", "Price (Rs)", "Stock", "Status", "Description"],
+          headers: [
+            t("products.colProduct"),
+            t("products.colCategory"),
+            t("products.colPriceRs"),
+            t("products.colStock"),
+            t("products.colStatus"),
+            t("products.colDescription"),
+          ],
           rows: products.map((product) => [
             product.name,
             product.category,
             formatCurrency(product.price),
             String(product.stockAvailable),
-            product.isActive ? "Active" : "Disabled",
+            product.isActive ? t("common.active") : t("common.disabled"),
             product.description ?? "—",
           ]),
         },
       ],
     });
-    toast.success("Products PDF downloaded");
+    toast.success(t("products.pdfDownloadedToast"));
   }
 
   const columns: Column<Product>[] = [
     {
       key: "image",
-      header: "Image",
+      header: t("products.colImage"),
       render: (product) =>
         product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -252,7 +263,7 @@ export default function ProductsPage() {
     },
     {
       key: "name",
-      header: "Product",
+      header: t("products.colProduct"),
       render: (product) => (
         <div>
           <p className="font-medium">{product.name}</p>
@@ -262,31 +273,31 @@ export default function ProductsPage() {
         </div>
       ),
     },
-    { key: "category", header: "Category", render: (p) => p.category },
+    { key: "category", header: t("products.colCategory"), render: (p) => p.category },
     {
       key: "price",
-      header: "Price (Rs)",
+      header: t("products.colPriceRs"),
       render: (p) => formatCurrency(p.price),
     },
     {
       key: "stock",
-      header: "Stock",
+      header: t("products.colStock"),
       render: (p) => p.stockAvailable,
     },
     {
       key: "status",
-      header: "Status",
+      header: t("products.colStatus"),
       render: (p) => (
         <span
           className={`rounded-full px-2 py-1 text-xs ${p.isActive ? "bg-green-100 text-green-800" : "bg-stone-200 text-stone-700"}`}
         >
-          {p.isActive ? "Active" : "Disabled"}
+          {p.isActive ? t("common.active") : t("common.disabled")}
         </span>
       ),
     },
     {
       key: "actions",
-      header: "Actions",
+      header: t("products.colActions"),
       render: (product) => (
         <div className="flex flex-wrap gap-1.5">
           <button
@@ -295,7 +306,7 @@ export default function ProductsPage() {
             onClick={() => openEdit(product)}
           >
             <HiOutlinePencilSquare className="h-4 w-4 shrink-0" aria-hidden />
-            Edit
+            {t("common.edit")}
           </button>
           <button
             type="button"
@@ -309,7 +320,7 @@ export default function ProductsPage() {
             ) : (
               <HiOutlineCheckCircle className="h-4 w-4 shrink-0" aria-hidden />
             )}
-            {product.isActive ? "Disable" : "Enable"}
+            {product.isActive ? t("common.disable") : t("common.enable")}
           </button>
           {!product.isActive ? (
             <button
@@ -318,7 +329,7 @@ export default function ProductsPage() {
               onClick={() => setDeleteTarget(product)}
             >
               <HiOutlineTrash className="h-4 w-4 shrink-0" aria-hidden />
-              Delete
+              {t("common.delete")}
             </button>
           ) : null}
         </div>
@@ -352,22 +363,24 @@ export default function ProductsPage() {
   return (
     <div>
       <PageHeader
-        title="Products"
-        description="Manage bakery products and stock. Disable before deleting."
+        title={t("products.title")}
+        description={t("products.description")}
         action={
           <PageHeaderActions>
             <DownloadPdfButton
               onClick={handleExportPdf}
               disabled={!products.length || loading}
             />
-            <Button onClick={openCreate}>+ Add product</Button>
+            <Button onClick={openCreate}>{t("products.addProduct")}</Button>
           </PageHeaderActions>
         }
       />
 
       {categories.length > 0 ? (
         <section className="mb-6 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm">
-          <p className="mb-3 text-sm font-medium text-stone-700">Categories</p>
+          <p className="mb-3 text-sm font-medium text-stone-700">
+            {t("products.categories")}
+          </p>
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => (
               <button
@@ -375,16 +388,13 @@ export default function ProductsPage() {
                 type="button"
                 onClick={() => openRenameCategory(category)}
                 className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm text-amber-900 transition hover:bg-amber-100"
-                title="Click to rename"
+                title={t("products.clickToRenameTitle")}
               >
                 {category.name}
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-stone-500">
-            Click a category to rename it. New categories appear when you add a
-            product.
-          </p>
+          <p className="mt-2 text-xs text-stone-500">{t("products.categoryHint")}</p>
         </section>
       ) : null}
 
@@ -397,11 +407,11 @@ export default function ProductsPage() {
         />
         <div className="grid gap-3 sm:grid-cols-2 lg:w-[28rem]">
           <Select
-            label="Category"
+            label={t("common.category")}
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
-            <option value="">All categories</option>
+            <option value="">{t("products.allCategories")}</option>
             {categories.map((category) => (
               <option key={category.id} value={category.name}>
                 {category.name}
@@ -409,14 +419,14 @@ export default function ProductsPage() {
             ))}
           </Select>
           <Select
-            label="Sort by"
+            label={t("products.sortBy")}
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
-            <option value="name-asc">Name A–Z</option>
-            <option value="price-asc">Price low to high</option>
-            <option value="price-desc">Price high to low</option>
-            <option value="stock-desc">Stock high to low</option>
+            <option value="name-asc">{t("products.sortNameAsc")}</option>
+            <option value="price-asc">{t("products.sortPriceAsc")}</option>
+            <option value="price-desc">{t("products.sortPriceDesc")}</option>
+            <option value="stock-desc">{t("products.sortStockDesc")}</option>
           </Select>
         </div>
       </div>
@@ -428,8 +438,8 @@ export default function ProductsPage() {
         rowKey={(row) => row.id}
         emptyMessage={
           statusTab === "active"
-            ? "No active products yet. Add your first product."
-            : "No inactive products."
+            ? t("products.emptyActive")
+            : t("products.emptyInactive")
         }
         getSearchText={(product) =>
           [
@@ -443,34 +453,38 @@ export default function ProductsPage() {
             .filter(Boolean)
             .join(" ")
         }
-        searchPlaceholder="Search products..."
+        searchPlaceholder={t("products.searchPlaceholder")}
       />
 
       <Modal
         open={modalOpen}
-        title={editing ? "Edit product" : "Add product"}
+        title={editing ? t("products.editProduct") : t("products.addProductModal")}
         onClose={() => setModalOpen(false)}
         size="lg"
         footer={
           <div className="grid grid-cols-2 gap-3">
             <Button variant="secondary" fullWidth onClick={() => setModalOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button fullWidth onClick={() => void handleSave()} disabled={saving}>
-              {saving ? "Saving..." : editing ? "Update" : "Add product"}
+              {saving
+                ? t("common.saving")
+                : editing
+                  ? t("products.update")
+                  : t("products.addProductModal")}
             </Button>
           </div>
         }
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label="Name"
+            label={t("products.formName")}
             required
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
           <Input
-            label="Price (Rs)"
+            label={t("products.formPriceRs")}
             required
             type="number"
             min="0"
@@ -480,7 +494,7 @@ export default function ProductsPage() {
           />
           <div className="sm:col-span-2">
             <Textarea
-              label="Description"
+              label={t("products.formDescription")}
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
@@ -488,15 +502,15 @@ export default function ProductsPage() {
             />
           </div>
           <CategoryInput
-            label="Category"
+            label={t("products.formCategory")}
             required
             value={form.category}
             onChange={(category) => setForm({ ...form, category })}
             categories={categories.map((category) => category.name)}
-            placeholder="Type or pick a category"
+            placeholder={t("products.formCategoryPlaceholder")}
           />
           <Input
-            label="Stock available"
+            label={t("products.formStockAvailable")}
             required
             type="number"
             min="0"
@@ -507,7 +521,7 @@ export default function ProductsPage() {
           />
           <div className="sm:col-span-2">
             <ImageUpload
-              label="Product image"
+              label={t("products.formProductImage")}
               value={form.imageUrl}
               onChange={(url) => setForm({ ...form, imageUrl: url })}
             />
@@ -517,7 +531,9 @@ export default function ProductsPage() {
 
       <Modal
         open={categoryModalOpen}
-        title={`Rename "${editingCategory?.name ?? "category"}"`}
+        title={t("products.renameCategoryTitle", {
+          name: editingCategory?.name ?? t("common.category"),
+        })}
         onClose={() => setCategoryModalOpen(false)}
         footer={
           <div className="grid grid-cols-2 gap-3">
@@ -526,37 +542,43 @@ export default function ProductsPage() {
               fullWidth
               onClick={() => setCategoryModalOpen(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               fullWidth
               onClick={() => void handleRenameCategory()}
               disabled={saving}
             >
-              {saving ? "Saving..." : "Save category name"}
+              {saving ? t("common.saving") : t("products.saveCategoryName")}
             </Button>
           </div>
         }
       >
         <Input
-          label="Category name"
+          label={t("products.formCategoryName")}
           required
           value={categoryName}
           onChange={(e) => setCategoryName(e.target.value)}
-          placeholder="e.g. Bread, Pastry, Cake"
+          placeholder={t("products.formCategoryNamePlaceholder")}
         />
       </Modal>
 
       <ConfirmModal
         open={disableTarget !== null}
-        title={disableTarget?.isActive ? "Disable product" : "Enable product"}
+        title={
+          disableTarget?.isActive
+            ? t("products.disableTitle")
+            : t("products.enableTitle")
+        }
         message={
           disableTarget?.isActive
-            ? `Disable ${disableTarget.name}? It will be hidden from stock assignments and new deliveries.`
-            : `Enable ${disableTarget?.name}? It will be available for assignments and deliveries again.`
+            ? t("products.disableMessage", { name: disableTarget.name })
+            : t("products.enableMessage", { name: disableTarget?.name ?? "" })
         }
-        confirmLabel={disableTarget?.isActive ? "Disable" : "Enable"}
-        cancelLabel="Cancel"
+        confirmLabel={
+          disableTarget?.isActive ? t("common.disable") : t("common.enable")
+        }
+        cancelLabel={t("common.cancel")}
         variant={disableTarget?.isActive ? "danger" : "primary"}
         loading={actionLoading}
         onConfirm={() => void confirmDisable()}
@@ -565,10 +587,10 @@ export default function ProductsPage() {
 
       <ConfirmModal
         open={deleteTarget !== null}
-        title="Delete product"
-        message={`Permanently delete ${deleteTarget?.name}? Only possible when disabled and with no sales records.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("products.deleteTitle")}
+        message={t("products.deleteMessage", { name: deleteTarget?.name ?? "" })}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         variant="danger"
         loading={deleting}
         onConfirm={() => void confirmDeleteProduct()}

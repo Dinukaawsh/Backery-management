@@ -10,9 +10,11 @@ import {
   getAppDownloadInfo,
   loginAppDownload,
 } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 export function DownloadAppForm() {
   const toast = useToast();
+  const t = useT();
   const [businessName, setBusinessName] = useState("Bakery");
   const [enabled, setEnabled] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(true);
@@ -38,9 +40,11 @@ export function DownloadAppForm() {
     try {
       await loginAppDownload(username, password);
       setAuthenticated(true);
-      toast.success("Access granted. Tap download to install the app.");
+      toast.success(t("downloadApp.accessGrantedToast"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Login failed");
+      toast.error(
+        error instanceof Error ? error.message : t("downloadApp.loginFailed"),
+      );
     } finally {
       setLoading(false);
     }
@@ -61,46 +65,45 @@ export function DownloadAppForm() {
             <p className="text-sm uppercase tracking-[0.2em] text-amber-700">
               {businessName}
             </p>
-            <h1 className="text-2xl font-bold text-black">Download mobile app</h1>
+            <h1 className="text-2xl font-bold text-black">
+              {t("downloadApp.title")}
+            </h1>
           </div>
         </div>
 
         <p className="mt-4 text-sm text-stone-600">
-          Delivery partners: enter the username and password from your admin to
-          download and install the Android app.
+          {t("downloadApp.subtitle")}
         </p>
 
         {loadingInfo ? (
-          <p className="mt-6 text-sm text-stone-500">Loading...</p>
+          <p className="mt-6 text-sm text-stone-500">{t("downloadApp.loading")}</p>
         ) : !enabled ? (
           <div className="mt-6 rounded-xl border border-amber-100 bg-amber-50/60 p-4 text-sm text-stone-700">
-            App download is not set up yet. Ask your admin to configure it in
-            Settings.
+            {t("downloadApp.notEnabled")}
           </div>
         ) : authenticated ? (
           <div className="mt-6 space-y-4">
             <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
-              You are signed in. Download the APK, then open it on your Android
-              phone to install.
+              {t("downloadApp.signedInHint")}
             </div>
             <Button fullWidth onClick={handleDownload}>
-              Download APK
+              {t("downloadApp.downloadApk")}
             </Button>
             <p className="text-center text-xs text-stone-500">
-              Link expires after 1 hour. Sign in again if needed.
+              {t("downloadApp.linkExpires")}
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <Input
-              label="Username"
+              label={t("downloadApp.username")}
               required
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
             <Input
-              label="Password"
+              label={t("downloadApp.password")}
               type="password"
               required
               autoComplete="current-password"
@@ -108,7 +111,7 @@ export function DownloadAppForm() {
               onChange={(e) => setPassword(e.target.value)}
             />
             <Button type="submit" fullWidth disabled={loading}>
-              {loading ? "Checking..." : "Continue to download"}
+              {loading ? t("downloadApp.checking") : t("downloadApp.continue")}
             </Button>
           </form>
         )}

@@ -38,6 +38,8 @@ import {
 } from "@/lib/api";
 import { downloadPdf } from "@/lib/export-pdf";
 import { formatCurrency } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
+import type { EnMessages } from "@/lib/i18n/messages/en";
 
 const emptyForm = {
   name: "",
@@ -47,15 +49,22 @@ const emptyForm = {
   route: "",
 };
 
-function formatAddedBy(shop: Shop) {
+type TFunction = (
+  key: keyof EnMessages,
+  params?: Record<string, string | number>,
+) => string;
+
+function formatAddedBy(shop: Shop, t: TFunction) {
   if (!shop.addedByName) return "—";
   const role =
     shop.addedByRole === "delivery"
-      ? "Delivery partner"
+      ? t("shops.addedByDelivery")
       : shop.addedByRole === "admin"
-        ? "Admin"
+        ? t("shops.addedByAdmin")
         : "";
-  return role ? `${shop.addedByName} (${role})` : shop.addedByName;
+  return role
+    ? t("shops.addedByFormatted", { name: shop.addedByName, role })
+    : shop.addedByName;
 }
 
 function formatDropItems(drop: ShopDropSummary) {
@@ -66,6 +75,7 @@ function formatDropItems(drop: ShopDropSummary) {
 
 export default function ShopsPage() {
   const toast = useToast();
+  const t = useT();
   const { settings } = useBusinessSettings();
   const [shops, setShops] = useState<Shop[]>([]);
   const [drops, setDrops] = useState<ShopDropSummary[]>([]);
@@ -92,11 +102,11 @@ export default function ShopsPage() {
     try {
       setShops(await fetchShops());
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load shops");
+      toast.error(err instanceof Error ? err.message : t("shops.failedToLoad"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast, t]);
 
   const loadDrops = useCallback(async () => {
     setDropsLoading(true);
@@ -121,12 +131,12 @@ export default function ShopsPage() {
       setDrops(data);
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to load shop drops",
+        err instanceof Error ? err.message : t("shops.failedToLoadDrops"),
       );
     } finally {
       setDropsLoading(false);
     }
-  }, [dropDateFrom, dropDateTo, deliveryGuyId]);
+  }, [dropDateFrom, dropDateTo, deliveryGuyId, toast, t]);
 
   useEffect(() => {
     void loadShops();
@@ -167,16 +177,16 @@ export default function ShopsPage() {
       };
       if (editing) {
         await updateShop(editing.id, payload);
-        toast.success("Shop updated");
+        toast.success(t("shops.updatedToast"));
       } else {
         await createShop(payload);
-        toast.success("Shop added");
+        toast.success(t("shops.addedToast"));
       }
       setModalOpen(false);
       setForm(emptyForm);
       await loadShops();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -191,11 +201,13 @@ export default function ShopsPage() {
       });
       setDisableTarget(null);
       toast.success(
-        disableTarget.isActive ? "Shop disabled" : "Shop enabled",
+        disableTarget.isActive
+          ? t("shops.disabledToast")
+          : t("shops.enabledToast"),
       );
       await loadShops();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : t("common.updateFailed"));
     } finally {
       setActionLoading(false);
     }
@@ -207,10 +219,10 @@ export default function ShopsPage() {
     try {
       await deleteShop(deleteTarget.id);
       setDeleteTarget(null);
-      toast.success("Shop deleted");
+      toast.success(t("shops.deletedToast"));
       await loadShops();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
+      toast.error(err instanceof Error ? err.message : t("common.deleteFailed"));
     } finally {
       setActionLoading(false);
     }
@@ -218,34 +230,39 @@ export default function ShopsPage() {
 
   function dropPeriodLabel() {
     if (dropDateTo && dropDateTo !== dropDateFrom) {
-      return `${dropDateFrom} to ${dropDateTo}`;
+      return t("shops.periodRange", { from: dropDateFrom, to: dropDateTo });
     }
     return dropDateFrom;
   }
 
   function handleExportPdf() {
     if (!shops.length && !drops.length) {
-      toast.error("No shop data to export");
+      toast.error(t("shops.noExport"));
       return;
     }
 
+    const period = dropPeriodLabel();
+    const subtitle = deliveryGuyId
+      ? t("shops.pdfSubtitleFiltered", { period })
+      : t("shops.pdfSubtitle", { period });
+
     downloadPdf({
       filename: "shops-and-drops",
-      title: "Shops & Daily Drops",
-      subtitle: `Drop period: ${dropPeriodLabel()}${deliveryGuyId ? " • Filtered delivery partner" : ""}`,
+      title: t("shops.pdfTitle"),
+      subtitle,
       business: settings,
       sections: [
         {
-          heading: "All shops",
+          heading: t("shops.pdfAllShopsHeading"),
           headers: [
-            "Shop",
-            "Route",
-            "Outstanding (Rs)",
-            "Owner",
-            "Address",
-            "Status",
-            "Added by",
-            "Registered",
+            t("shops.colShop"),
+            t("shops.colRoute"),
+            t("shops.colOutstandingRs"),
+            t("shops.colOwner"),
+            t("shops.colAddress"),
+            t("shops.colStatus"),
+            t("shops.colAddedBy"),
+            t("shops.colRegistered"),
           ],
           rows: shops.map((shop) => [
             shop.name,
@@ -253,20 +270,20 @@ export default function ShopsPage() {
             formatCurrency(shop.outstandingBalance ?? "0"),
             shop.ownerName,
             shop.address,
-            shop.isActive ? "Active" : "Disabled",
-            formatAddedBy(shop),
+            shop.isActive ? t("common.active") : t("common.disabled"),
+            formatAddedBy(shop, t),
             new Date(shop.createdAt).toLocaleDateString(),
           ]),
         },
         {
-          heading: `Drops (${dropPeriodLabel()})`,
+          heading: t("shops.pdfDropsHeading", { period: dropPeriodLabel() }),
           headers: [
-            "Date",
-            "Shop",
-            "Delivery partner",
-            "Items dropped",
-            "Total qty",
-            "Amount (Rs)",
+            t("shops.colDate"),
+            t("shops.colShop"),
+            t("shops.deliveryPartner"),
+            t("shops.colItemsDropped"),
+            t("shops.colTotalQty"),
+            t("shops.colAmountRs"),
           ],
           rows: drops.map((drop) => [
             drop.dropDate,
@@ -279,7 +296,7 @@ export default function ShopsPage() {
         },
       ],
     });
-    toast.success("Shops PDF downloaded");
+    toast.success(t("shops.pdfDownloadedToast"));
   }
 
   const activeShops = shops.filter((shop) => shop.isActive);
@@ -299,44 +316,44 @@ export default function ShopsPage() {
     });
 
   const shopColumns: Column<Shop>[] = [
-    { key: "name", header: "Shop", render: (s) => s.name },
+    { key: "name", header: t("shops.colShop"), render: (s) => s.name },
     {
       key: "route",
-      header: "Route",
+      header: t("shops.colRoute"),
       render: (s) => s.route ?? "—",
     },
     {
       key: "outstanding",
-      header: "Outstanding (Rs)",
+      header: t("shops.colOutstandingRs"),
       render: (s) => formatCurrency(s.outstandingBalance ?? "0"),
     },
-    { key: "owner", header: "Owner", render: (s) => s.ownerName },
-    { key: "address", header: "Address", render: (s) => s.address },
-    { key: "phone", header: "Phone", render: (s) => s.phone ?? "—" },
+    { key: "owner", header: t("shops.colOwner"), render: (s) => s.ownerName },
+    { key: "address", header: t("shops.colAddress"), render: (s) => s.address },
+    { key: "phone", header: t("shops.colPhone"), render: (s) => s.phone ?? "—" },
     {
       key: "status",
-      header: "Status",
+      header: t("shops.colStatus"),
       render: (s) => (
         <span
           className={`rounded-full px-2 py-1 text-xs ${s.isActive ? "bg-green-100 text-green-800" : "bg-stone-200 text-stone-700"}`}
         >
-          {s.isActive ? "Active" : "Disabled"}
+          {s.isActive ? t("common.active") : t("common.disabled")}
         </span>
       ),
     },
     {
       key: "addedBy",
-      header: "Added by",
-      render: (s) => formatAddedBy(s),
+      header: t("shops.colAddedBy"),
+      render: (s) => formatAddedBy(s, t),
     },
     {
       key: "added",
-      header: "Registered",
+      header: t("shops.colRegistered"),
       render: (s) => new Date(s.createdAt).toLocaleDateString(),
     },
     {
       key: "actions",
-      header: "Actions",
+      header: t("shops.colActions"),
       render: (shop) => (
         <div className="flex flex-wrap gap-1.5">
           <button
@@ -345,7 +362,7 @@ export default function ShopsPage() {
             onClick={() => openEdit(shop)}
           >
             <HiOutlinePencilSquare className="h-4 w-4 shrink-0" aria-hidden />
-            Edit
+            {t("common.edit")}
           </button>
           <button
             type="button"
@@ -359,7 +376,7 @@ export default function ShopsPage() {
             ) : (
               <HiOutlineCheckCircle className="h-4 w-4 shrink-0" aria-hidden />
             )}
-            {shop.isActive ? "Disable" : "Enable"}
+            {shop.isActive ? t("common.disable") : t("common.enable")}
           </button>
           {!shop.isActive ? (
             <button
@@ -368,7 +385,7 @@ export default function ShopsPage() {
               onClick={() => setDeleteTarget(shop)}
             >
               <HiOutlineTrash className="h-4 w-4 shrink-0" aria-hidden />
-              Delete
+              {t("common.delete")}
             </button>
           ) : null}
         </div>
@@ -379,30 +396,30 @@ export default function ShopsPage() {
   const dropColumns: Column<ShopDropSummary>[] = [
     {
       key: "date",
-      header: "Date",
+      header: t("shops.colDate"),
       render: (d) => d.dropDate,
     },
-    { key: "shop", header: "Shop", render: (d) => d.shopName },
+    { key: "shop", header: t("shops.colShop"), render: (d) => d.shopName },
     {
       key: "delivery",
-      header: "Delivery partner",
+      header: t("shops.deliveryPartner"),
       render: (d) => d.deliveryGuyName,
     },
     {
       key: "items",
-      header: "Items dropped",
+      header: t("shops.colItemsDropped"),
       render: (d) => (
         <span className="text-sm text-stone-700">{formatDropItems(d)}</span>
       ),
     },
     {
       key: "qty",
-      header: "Total qty",
+      header: t("shops.colTotalQty"),
       render: (d) => d.totalQuantity,
     },
     {
       key: "amount",
-      header: "Amount (Rs)",
+      header: t("shops.colAmountRs"),
       render: (d) => formatCurrency(d.totalAmount),
     },
   ];
@@ -410,8 +427,8 @@ export default function ShopsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Shops"
-        description="Manage shops and see what each delivery partner dropped at each shop on any day."
+        title={t("shops.title")}
+        description={t("shops.description")}
         action={
           <PageHeaderActions>
             <DownloadPdfButton
@@ -421,7 +438,7 @@ export default function ShopsPage() {
             <Button onClick={openCreate}>
               <span className="inline-flex items-center gap-2">
                 <HiOutlinePlus className="h-4 w-4" aria-hidden />
-                Add shop
+                {t("shops.addShop")}
               </span>
             </Button>
           </PageHeaderActions>
@@ -432,7 +449,7 @@ export default function ShopsPage() {
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-black">
             <HiOutlineBuildingStorefront className="h-5 w-5 text-amber-700" />
-            All shops
+            {t("shops.allShops")}
           </h2>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <StatusTabs
@@ -442,12 +459,12 @@ export default function ShopsPage() {
               inactiveCount={inactiveShops.length}
             />
             <Select
-              label="Filter by route"
+              label={t("shops.filterByRoute")}
               value={routeFilter}
               onChange={(e) => setRouteFilter(e.target.value)}
               className="sm:w-56"
             >
-              <option value="">All routes</option>
+              <option value="">{t("shops.allRoutes")}</option>
               {routeOptions.map((route) => (
                 <option key={route} value={route}>
                   {route}
@@ -463,8 +480,8 @@ export default function ShopsPage() {
           rowKey={(row) => row.id}
           emptyMessage={
             statusTab === "active"
-              ? "No active shops yet."
-              : "No inactive shops."
+              ? t("shops.emptyActive")
+              : t("shops.emptyInactive")
           }
           getSearchText={(shop) =>
             [
@@ -480,36 +497,35 @@ export default function ShopsPage() {
               .filter(Boolean)
               .join(" ")
           }
-          searchPlaceholder="Search shops..."
+          searchPlaceholder={t("shops.searchShops")}
         />
       </section>
 
       <section>
         <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-black">Shop drops</h2>
+            <h2 className="text-lg font-semibold text-black">{t("shops.shopDrops")}</h2>
             <p className="text-sm text-stone-600">
-              See how many items and product types each delivery partner dropped at
-              each shop. Pick any date or date range.
+              {t("shops.shopDropsDescription")}
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:w-[48rem]">
             <DateInput
-              label="From date"
+              label={t("shops.fromDate")}
               value={dropDateFrom}
               onChange={(e) => setDropDateFrom(e.target.value)}
             />
             <DateInput
-              label="To date (optional)"
+              label={t("shops.toDateOptional")}
               value={dropDateTo}
               onChange={(e) => setDropDateTo(e.target.value)}
             />
             <Select
-              label="Delivery partner"
+              label={t("shops.deliveryPartner")}
               value={deliveryGuyId}
               onChange={(e) => setDeliveryGuyId(e.target.value)}
             >
-              <option value="">All delivery partners</option>
+              <option value="">{t("shops.allPartners")}</option>
               {deliveryGuys.map((guy) => (
                 <option key={guy.id} value={guy.id}>
                   {guy.name}
@@ -526,7 +542,7 @@ export default function ShopsPage() {
           rowKey={(row) =>
             `${row.shopId}-${row.deliveryGuyId}-${row.dropDate}`
           }
-          emptyMessage="No drops recorded for this period."
+          emptyMessage={t("shops.emptyDrops")}
           pageSize={10}
           getSearchText={(drop) =>
             [
@@ -538,52 +554,60 @@ export default function ShopsPage() {
               drop.totalAmount,
             ].join(" ")
           }
-          searchPlaceholder="Search drops..."
+          searchPlaceholder={t("shops.searchDrops")}
         />
       </section>
 
       <Modal
         open={modalOpen}
-        title={editing ? `Edit ${editing.name}` : "Add shop"}
+        title={
+          editing
+            ? t("shops.editTitle", { name: editing.name })
+            : t("shops.addShop")
+        }
         onClose={() => setModalOpen(false)}
         footer={
           <div className="grid grid-cols-2 gap-3">
             <Button variant="secondary" fullWidth onClick={() => setModalOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button fullWidth onClick={() => void handleSave()} disabled={saving}>
-              {saving ? "Saving..." : editing ? "Save changes" : "Add shop"}
+              {saving
+                ? t("common.saving")
+                : editing
+                  ? t("common.saveChanges")
+                  : t("shops.addShop")}
             </Button>
           </div>
         }
       >
         <div className="grid gap-4">
           <Input
-            label="Shop name"
+            label={t("shops.formShopName")}
             required
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
           <Input
-            label="Owner name"
+            label={t("shops.formOwnerName")}
             required
             value={form.ownerName}
             onChange={(e) => setForm({ ...form, ownerName: e.target.value })}
           />
           <Input
-            label="Address"
+            label={t("shops.formAddress")}
             required
             value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
           />
           <Input
-            label="Route"
-            placeholder="e.g. Route 1, Galle Road"
+            label={t("shops.formRoute")}
+            placeholder={t("shops.formRoutePlaceholder")}
             value={form.route}
             onChange={(e) => setForm({ ...form, route: e.target.value })}
           />
           <Input
-            label="Phone"
+            label={t("shops.formPhone")}
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
@@ -592,14 +616,20 @@ export default function ShopsPage() {
 
       <ConfirmModal
         open={disableTarget !== null}
-        title={disableTarget?.isActive ? "Disable shop" : "Enable shop"}
+        title={
+          disableTarget?.isActive
+            ? t("shops.disableTitle")
+            : t("shops.enableTitle")
+        }
         message={
           disableTarget?.isActive
-            ? `Disable ${disableTarget.name}? Delivery partners will not be able to record new drops there.`
-            : `Enable ${disableTarget?.name}? Delivery partners can record drops again.`
+            ? t("shops.disableMessage", { name: disableTarget.name })
+            : t("shops.enableMessage", { name: disableTarget?.name ?? "" })
         }
-        confirmLabel={disableTarget?.isActive ? "Disable" : "Enable"}
-        cancelLabel="Cancel"
+        confirmLabel={
+          disableTarget?.isActive ? t("common.disable") : t("common.enable")
+        }
+        cancelLabel={t("common.cancel")}
         variant={disableTarget?.isActive ? "danger" : "primary"}
         loading={actionLoading}
         onConfirm={() => void confirmDisable()}
@@ -608,10 +638,10 @@ export default function ShopsPage() {
 
       <ConfirmModal
         open={deleteTarget !== null}
-        title="Delete shop"
-        message={`Permanently delete ${deleteTarget?.name}? Only possible when disabled and with no sales records.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("shops.deleteTitle")}
+        message={t("shops.deleteMessage", { name: deleteTarget?.name ?? "" })}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         variant="danger"
         loading={actionLoading}
         onConfirm={() => void confirmDelete()}

@@ -1,7 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
 import { HiOutlineDocumentArrowDown } from "react-icons/hi2";
+
+import { useT } from "@/lib/i18n";
+
+import { Button } from "@/components/ui/Button";
 
 type DownloadPdfButtonProps = {
   onClick: () => void;
@@ -12,13 +15,14 @@ type DownloadPdfButtonProps = {
 export function DownloadPdfButton({
   onClick,
   disabled = false,
-  label = "Download PDF",
+  label,
 }: DownloadPdfButtonProps) {
+  const t = useT();
   return (
     <Button variant="secondary" onClick={onClick} disabled={disabled}>
       <span className="inline-flex items-center gap-2">
         <HiOutlineDocumentArrowDown className="h-4 w-4" aria-hidden />
-        {label}
+        {label ?? t("pdf.downloadPdf")}
       </span>
     </Button>
   );

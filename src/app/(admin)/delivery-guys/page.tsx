@@ -30,6 +30,7 @@ import {
   type DeliveryGuy,
 } from "@/lib/api";
 import { downloadPdf } from "@/lib/export-pdf";
+import { useT } from "@/lib/i18n";
 
 const emptyForm = {
   name: "",
@@ -40,6 +41,7 @@ const emptyForm = {
 
 export default function DeliveryGuysPage() {
   const toast = useToast();
+  const t = useT();
   const { settings } = useBusinessSettings();
   const [deliveryGuys, setDeliveryGuys] = useState<DeliveryGuy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,11 +59,11 @@ export default function DeliveryGuysPage() {
     try {
       setDeliveryGuys(await fetchDeliveryGuys());
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : t("common.failedToLoad"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast, t]);
 
   useEffect(() => {
     void load();
@@ -94,15 +96,15 @@ export default function DeliveryGuysPage() {
           phone: form.phone,
           password: form.password || undefined,
         });
-        toast.success("Delivery partner updated");
+        toast.success(t("deliveryGuys.updatedToast"));
       } else {
         await createDeliveryGuy(form);
-        toast.success("Delivery partner registered");
+        toast.success(t("deliveryGuys.registeredToast"));
       }
       setModalOpen(false);
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -118,12 +120,12 @@ export default function DeliveryGuysPage() {
       setDisableTarget(null);
       toast.success(
         disableTarget.isActive
-          ? "Delivery partner disabled"
-          : "Delivery partner enabled",
+          ? t("deliveryGuys.disabledToast")
+          : t("deliveryGuys.enabledToast"),
       );
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : t("common.updateFailed"));
     } finally {
       setActionLoading(false);
     }
@@ -135,10 +137,10 @@ export default function DeliveryGuysPage() {
     try {
       await deleteDeliveryGuy(deleteTarget.id);
       setDeleteTarget(null);
-      toast.success("Delivery partner deleted");
+      toast.success(t("deliveryGuys.deletedToast"));
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
+      toast.error(err instanceof Error ? err.message : t("common.deleteFailed"));
     } finally {
       setActionLoading(false);
     }
@@ -146,54 +148,60 @@ export default function DeliveryGuysPage() {
 
   function handleExportPdf() {
     if (!deliveryGuys.length) {
-      toast.error("No delivery partners to export");
+      toast.error(t("deliveryGuys.noExport"));
       return;
     }
 
     downloadPdf({
       filename: "delivery-guys-list",
-      title: "Delivery Partners List",
-      subtitle: `${deliveryGuys.length} delivery partner(s)`,
+      title: t("deliveryGuys.pdfTitle"),
+      subtitle: t("deliveryGuys.pdfSubtitle", { count: deliveryGuys.length }),
       business: settings,
       sections: [
         {
-          headers: ["Name", "Email", "Phone", "Status", "Registered"],
+          headers: [
+            t("deliveryGuys.colName"),
+            t("deliveryGuys.colEmail"),
+            t("deliveryGuys.colPhone"),
+            t("deliveryGuys.colStatus"),
+            t("deliveryGuys.colRegistered"),
+          ],
           rows: deliveryGuys.map((guy) => [
             guy.name,
             guy.email,
             guy.phone ?? "—",
-            guy.isActive ? "Active" : "Disabled",
+            guy.isActive ? t("common.active") : t("common.disabled"),
             new Date(guy.createdAt).toLocaleDateString(),
           ]),
         },
       ],
     });
-    toast.success("Delivery partners PDF downloaded");
+    toast.success(t("deliveryGuys.pdfDownloadedToast"));
   }
 
   const columns: Column<DeliveryGuy>[] = [
-    { key: "name", header: "Name", render: (g) => g.name },
-    { key: "email", header: "Email", render: (g) => g.email },
-    { key: "phone", header: "Phone", render: (g) => g.phone ?? "—" },
+    { key: "name", header: t("deliveryGuys.colName"), render: (g) => g.name },
+    { key: "email", header: t("deliveryGuys.colEmail"), render: (g) => g.email },
+    { key: "phone", header: t("deliveryGuys.colPhone"), render: (g) => g.phone ?? "—" },
     {
       key: "status",
-      header: "Status",
+      header: t("deliveryGuys.colStatus"),
       render: (g) => (
         <span
           className={`rounded-full px-2 py-1 text-xs ${g.isActive ? "bg-green-100 text-green-800" : "bg-stone-200 text-stone-700"}`}
         >
-          {g.isActive ? "Active" : "Disabled"}
+          {g.isActive ? t("common.active") : t("common.disabled")}
         </span>
       ),
     },
     {
       key: "registered",
-      header: "Registered",
+      header: t("deliveryGuys.colRegistered"),
       render: (g) => new Date(g.createdAt).toLocaleDateString(),
     },
     {
       key: "actions",
-      header: "Actions",
+      header: t("deliveryGuys.colActions"),
       render: (guy) => (
         <div className="flex flex-wrap gap-1.5">
           <button
@@ -202,7 +210,7 @@ export default function DeliveryGuysPage() {
             onClick={() => openEdit(guy)}
           >
             <HiOutlinePencilSquare className="h-4 w-4 shrink-0" aria-hidden />
-            Edit
+            {t("common.edit")}
           </button>
           <button
             type="button"
@@ -216,7 +224,7 @@ export default function DeliveryGuysPage() {
             ) : (
               <HiOutlineCheckCircle className="h-4 w-4 shrink-0" aria-hidden />
             )}
-            {guy.isActive ? "Disable" : "Enable"}
+            {guy.isActive ? t("common.disable") : t("common.enable")}
           </button>
           {!guy.isActive ? (
             <button
@@ -225,7 +233,7 @@ export default function DeliveryGuysPage() {
               onClick={() => setDeleteTarget(guy)}
             >
               <HiOutlineTrash className="h-4 w-4 shrink-0" aria-hidden />
-              Delete
+              {t("common.delete")}
             </button>
           ) : null}
         </div>
@@ -241,8 +249,8 @@ export default function DeliveryGuysPage() {
   return (
     <div>
       <PageHeader
-        title="Delivery Partners"
-        description="Registered delivery partners. Disable before deleting. Only disabled partners can be removed."
+        title={t("deliveryGuys.title")}
+        description={t("deliveryGuys.description")}
         action={
           <PageHeaderActions>
             <DownloadPdfButton
@@ -252,7 +260,7 @@ export default function DeliveryGuysPage() {
             <Button onClick={openCreate}>
               <span className="inline-flex items-center gap-2">
                 <HiOutlineUserPlus className="h-4 w-4" aria-hidden />
-                Register delivery partner
+                {t("deliveryGuys.register")}
               </span>
             </Button>
           </PageHeaderActions>
@@ -275,53 +283,65 @@ export default function DeliveryGuysPage() {
         rowKey={(row) => row.id}
         emptyMessage={
           statusTab === "active"
-            ? "No active delivery partners yet."
-            : "No inactive delivery partners."
+            ? t("deliveryGuys.emptyActive")
+            : t("deliveryGuys.emptyInactive")
         }
         getSearchText={(guy) =>
           [guy.name, guy.email, guy.phone, guy.isActive ? "active" : "disabled"]
             .filter(Boolean)
             .join(" ")
         }
-        searchPlaceholder="Search delivery partners..."
+        searchPlaceholder={t("deliveryGuys.searchPlaceholder")}
       />
 
       <Modal
         open={modalOpen}
-        title={editing ? `Edit ${editing.name}` : "Register delivery partner"}
+        title={
+          editing
+            ? t("deliveryGuys.editTitle", { name: editing.name })
+            : t("deliveryGuys.registerModal")
+        }
         onClose={() => setModalOpen(false)}
         footer={
           <div className="grid grid-cols-2 gap-3">
             <Button variant="secondary" fullWidth onClick={() => setModalOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button fullWidth onClick={() => void handleSave()} disabled={saving}>
-              {saving ? "Saving..." : editing ? "Save changes" : "Register"}
+              {saving
+                ? t("common.saving")
+                : editing
+                  ? t("common.saveChanges")
+                  : t("deliveryGuys.registerButton")}
             </Button>
           </div>
         }
       >
         <div className="grid gap-4">
           <Input
-            label="Full name"
+            label={t("deliveryGuys.formFullName")}
             required
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
           <Input
-            label="Email"
+            label={t("deliveryGuys.formEmail")}
             required
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <Input
-            label="Phone"
+            label={t("deliveryGuys.formPhone")}
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
           <Input
-            label={editing ? "New password (optional)" : "Password"}
+            label={
+              editing
+                ? t("deliveryGuys.formNewPasswordOptional")
+                : t("deliveryGuys.formPassword")
+            }
             required={!editing}
             type="password"
             minLength={6}
@@ -333,14 +353,20 @@ export default function DeliveryGuysPage() {
 
       <ConfirmModal
         open={disableTarget !== null}
-        title={disableTarget?.isActive ? "Disable delivery partner" : "Enable delivery partner"}
+        title={
+          disableTarget?.isActive
+            ? t("deliveryGuys.disableTitle")
+            : t("deliveryGuys.enableTitle")
+        }
         message={
           disableTarget?.isActive
-            ? `Disable ${disableTarget.name}? They will not be able to login until enabled again.`
-            : `Enable ${disableTarget?.name}? They will be able to login and receive stock again.`
+            ? t("deliveryGuys.disableMessage", { name: disableTarget.name })
+            : t("deliveryGuys.enableMessage", { name: disableTarget?.name ?? "" })
         }
-        confirmLabel={disableTarget?.isActive ? "Disable" : "Enable"}
-        cancelLabel="Cancel"
+        confirmLabel={
+          disableTarget?.isActive ? t("common.disable") : t("common.enable")
+        }
+        cancelLabel={t("common.cancel")}
         variant={disableTarget?.isActive ? "danger" : "primary"}
         loading={actionLoading}
         onConfirm={() => void confirmDisable()}
@@ -349,10 +375,12 @@ export default function DeliveryGuysPage() {
 
       <ConfirmModal
         open={deleteTarget !== null}
-        title="Delete delivery partner"
-        message={`Permanently delete ${deleteTarget?.name}? Only possible when disabled and with no sales records.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("deliveryGuys.deleteTitle")}
+        message={t("deliveryGuys.deleteMessage", {
+          name: deleteTarget?.name ?? "",
+        })}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         variant="danger"
         loading={actionLoading}
         onConfirm={() => void confirmDelete()}

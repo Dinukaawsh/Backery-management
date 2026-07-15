@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/lib/i18n";
+
 type StatusTab = "active" | "inactive";
 
 type StatusTabsProps = {
@@ -16,12 +18,21 @@ export function StatusTabs({
   onChange,
   activeCount,
   inactiveCount,
-  activeLabel = "Active",
-  inactiveLabel = "Inactive",
+  activeLabel,
+  inactiveLabel,
 }: StatusTabsProps) {
+  const t = useT();
   const tabs: Array<{ id: StatusTab; label: string; count?: number }> = [
-    { id: "active", label: activeLabel, count: activeCount },
-    { id: "inactive", label: inactiveLabel, count: inactiveCount },
+    {
+      id: "active",
+      label: activeLabel ?? t("statusTabs.active"),
+      count: activeCount,
+    },
+    {
+      id: "inactive",
+      label: inactiveLabel ?? t("statusTabs.inactive"),
+      count: inactiveCount,
+    },
   ];
 
   return (

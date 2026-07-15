@@ -27,6 +27,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getDashboard, type Sale } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency";
+import { useT } from "@/lib/i18n";
 
 function defaultDateRange() {
   const to = new Date();
@@ -47,6 +48,7 @@ function formatPeriodLabel(dateFrom: string, dateTo: string) {
 
 export default function DashboardPage() {
   const toast = useToast();
+  const t = useT();
   const defaults = defaultDateRange();
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState(defaults.dateFrom);
@@ -82,11 +84,11 @@ export default function DashboardPage() {
       setTopDeliveryGuys(data.topDeliveryGuys);
       setSalesByShop(data.salesByShop);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : t("common.failedToLoad"));
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, toast]);
+  }, [dateFrom, dateTo, toast, t]);
 
   useEffect(() => {
     void load();
@@ -123,7 +125,7 @@ export default function DashboardPage() {
   );
 
   if (loading && !recentSales.length && stats.periodSalesCount === 0) {
-    return <LoadingSpinner fullPage label="Loading dashboard..." />;
+    return <LoadingSpinner fullPage label={t("dashboard.loading")} />;
   }
 
   const cards: Array<{
@@ -133,31 +135,31 @@ export default function DashboardPage() {
     icon: IconType;
   }> = [
     {
-      label: "Sales",
+      label: t("dashboard.statSales"),
       value: stats.periodSalesCount,
       accent: "bg-amber-500",
       icon: HiOutlineChartBarSquare,
     },
     {
-      label: "Revenue",
+      label: t("dashboard.statRevenue"),
       value: formatCurrency(stats.periodSalesTotal),
       accent: "bg-orange-500",
       icon: HiOutlineCurrencyDollar,
     },
     {
-      label: "Products",
+      label: t("dashboard.statProducts"),
       value: stats.totalProducts,
       accent: "bg-amber-600",
       icon: HiOutlineCube,
     },
     {
-      label: "Delivery partners",
+      label: t("dashboard.statDeliveryPartners"),
       value: stats.totalDeliveryGuys,
       accent: "bg-orange-600",
       icon: HiOutlineTruck,
     },
     {
-      label: "Shops",
+      label: t("dashboard.statShops"),
       value: stats.totalShops,
       accent: "bg-yellow-600",
       icon: HiOutlineBuildingStorefront,
@@ -167,18 +169,18 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dashboard"
-        description={`Sales overview for ${periodLabel}.`}
+        title={t("dashboard.title")}
+        description={t("dashboard.description", { period: periodLabel })}
       />
 
       <div className="grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm md:grid-cols-2">
         <DateInput
-          label="From date"
+          label={t("dashboard.fromDate")}
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
         />
         <DateInput
-          label="To date"
+          label={t("dashboard.toDate")}
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
         />
@@ -208,12 +210,12 @@ export default function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-black">
-            Revenue trend
+            {t("dashboard.revenueTrend")}
           </h2>
           <div className="h-72">
             {chartData.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-stone-600">
-                No sales in this period.
+                {t("dashboard.noSalesInPeriod")}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -241,12 +243,12 @@ export default function DashboardPage() {
 
         <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-black">
-            Top delivery partners
+            {t("dashboard.topDeliveryPartners")}
           </h2>
           <div className="h-72">
             {deliveryChart.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-stone-600">
-                No delivery data for this period.
+                {t("dashboard.noDeliveryData")}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -270,12 +272,12 @@ export default function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-black">
-            Sales by shop
+            {t("dashboard.salesByShop")}
           </h2>
           <div className="h-72">
             {shopChart.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-stone-600">
-                No shop sales for this period.
+                {t("dashboard.noShopSales")}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -303,10 +305,14 @@ export default function DashboardPage() {
         </section>
 
         <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-black">Recent sales</h2>
+          <h2 className="mb-4 text-lg font-semibold text-black">
+            {t("dashboard.recentSales")}
+          </h2>
           <div className="custom-scrollbar max-h-72 space-y-3 overflow-y-auto">
             {recentSales.length === 0 ? (
-              <p className="text-sm text-stone-600">No sales in this period.</p>
+              <p className="text-sm text-stone-600">
+                {t("dashboard.noSalesInPeriod")}
+              </p>
             ) : (
               recentSales.map((sale) => (
                 <div

@@ -129,9 +129,16 @@ export async function PATCH(request: NextRequest) {
       email: updated.email,
       name: updated.name,
       role: updated.role,
+      phone: updated.phone,
+      imageUrl: updated.imageUrl,
     };
 
-    const token = await createToken(sessionUser);
+    const token = await createToken({
+      id: updated.id,
+      email: updated.email,
+      name: updated.name,
+      role: updated.role,
+    });
     const response = corsResponse({
       user: sessionUser,
       token,

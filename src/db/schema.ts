@@ -108,6 +108,24 @@ export const deliveryAllocations = pgTable("delivery_allocations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "sale",
+  "assignment",
+]);
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: notificationTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  href: text("href"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const businessSettings = pgTable("business_settings", {
   id: integer("id").primaryKey().default(1),
   businessName: text("business_name").notNull().default("Bakery"),
@@ -129,3 +147,4 @@ export type Shop = typeof shops.$inferSelect;
 export type Sale = typeof sales.$inferSelect;
 export type SaleItem = typeof saleItems.$inferSelect;
 export type DeliveryAllocation = typeof deliveryAllocations.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;

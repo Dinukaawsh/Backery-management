@@ -13,6 +13,7 @@ import {
   sevenDaysAgo,
 } from "@/lib/dates";
 import { formatMoney, parseMoney } from "@/lib/money";
+import { notifyAdmins } from "@/lib/notifications";
 import { validateSaleInput } from "@/lib/validators";
 
 function startOfToday() {
@@ -329,6 +330,21 @@ export async function POST(request: NextRequest) {
       .where(eq(shops.id, input.shopId));
 
     const fullSale = await getSaleWithDetails(sale.id);
+
+    try {
+      const itemSummary = (fullSale?.items ?? [])
+        .map((item) => `${item.productName} × ${item.quantity}`)
+        .join(", ");
+      await notifyAdmins({
+        type: "sale",
+        title: "New sale recorded",
+        body: `${fullSale?.deliveryGuyName ?? "Partner"} → ${fullSale?.shopName ?? "Shop"} · ${formatMoney(todayTotal)}${itemSummary ? ` · ${itemSummary}` : ""}`,
+        href: "/sales",
+      });
+    } catch (notifyError) {
+      console.error("Failed to create sale notification:", notifyError);
+    }
+
     return corsResponse({ sale: fullSale }, 201);
   } catch (error) {
     console.error("POST /api/sales failed:", error);

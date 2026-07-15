@@ -157,6 +157,44 @@ export async function getMe() {
   }>("/api/auth/me");
 }
 
+export type AppNotification = {
+  id: number;
+  userId: number;
+  type: "sale" | "assignment";
+  title: string;
+  body: string;
+  href: string | null;
+  isRead: boolean;
+  createdAt: string;
+};
+
+export async function fetchNotifications(params?: {
+  page?: number;
+  limit?: number;
+}) {
+  const search = new URLSearchParams();
+  if (params?.page) search.set("page", String(params.page));
+  if (params?.limit) search.set("limit", String(params.limit));
+  const qs = search.toString();
+  return apiFetch<{
+    notifications: AppNotification[];
+    page: number;
+    limit: number;
+    total: number;
+    unreadCount: number;
+  }>(`/api/notifications${qs ? `?${qs}` : ""}`);
+}
+
+export async function markNotificationsRead(input: {
+  all?: boolean;
+  ids?: number[];
+}) {
+  return apiFetch<{ ok: boolean }>("/api/notifications", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
 export async function getBusinessSettings() {
   const data = await apiFetch<{ settings: BusinessSettings }>(
     "/api/settings/business",

@@ -7,6 +7,7 @@ import type { IconType } from "react-icons";
 import {
   HiOutlineArrowRightOnRectangle,
   HiOutlineBars3,
+  HiOutlineBell,
   HiOutlineBuildingStorefront,
   HiOutlineCalendarDays,
   HiOutlineChartBarSquare,
@@ -18,6 +19,7 @@ import {
 } from "react-icons/hi2";
 
 import { LocaleToggle } from "@/components/LocaleToggle";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { useT } from "@/lib/i18n";
@@ -62,6 +64,11 @@ const navItems: NavItem[] = [
     href: "/calendar",
     key: "nav.calendar",
     icon: HiOutlineCalendarDays,
+  },
+  {
+    href: "/notifications",
+    key: "nav.notifications",
+    icon: HiOutlineBell,
   },
   { href: "/settings", key: "nav.settings", icon: HiOutlineCog6Tooth },
 ];
@@ -281,6 +288,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationsBell />
             {profileImageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

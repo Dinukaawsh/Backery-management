@@ -7,6 +7,7 @@ import { getAssignmentSummary } from "@/lib/allocations";
 import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
 import { dayRange, localDateString, parseDateInput } from "@/lib/dates";
+import { notifyUser } from "@/lib/notifications";
 
 export async function OPTIONS() {
   return corsOptionsResponse();
@@ -144,6 +145,7 @@ export async function POST(request: NextRequest) {
     }
 
     const created = [];
+    const assignedLines: string[] = [];
 
     for (const item of items) {
       const productId = Number(item.productId);
@@ -196,6 +198,19 @@ export async function POST(request: NextRequest) {
         .returning();
 
       created.push(allocation);
+      assignedLines.push(`${product.name} × ${quantity}`);
+    }
+
+    try {
+      await notifyUser({
+        userId: deliveryGuyId,
+        type: "assignment",
+        title: "New stock assigned",
+        body: assignedLines.join(", "),
+        href: null,
+      });
+    } catch (notifyError) {
+      console.error("Failed to create assignment notification:", notifyError);
     }
 
     const summary = await getAssignmentSummary(allocationDate, deliveryGuyId);

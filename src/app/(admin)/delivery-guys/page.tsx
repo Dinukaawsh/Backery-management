@@ -1,15 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
+  HiOutlineChatBubbleLeftEllipsis,
   HiOutlineCheckCircle,
+  HiOutlineEye,
   HiOutlineNoSymbol,
+  HiOutlinePhone,
   HiOutlinePencilSquare,
   HiOutlineTrash,
   HiOutlineUserPlus,
 } from "react-icons/hi2";
 
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
+import { ContactCallModal } from "@/components/ContactCallModal";
+import { DeliveryPartnerViewModal } from "@/components/DeliveryPartnerViewModal";
 import { Button } from "@/components/ui/Button";
 import {
   DownloadPdfButton,
@@ -44,6 +50,7 @@ const emptyForm = {
 export default function DeliveryGuysPage() {
   const toast = useToast();
   const t = useT();
+  const router = useRouter();
   const { settings } = useBusinessSettings();
   const [deliveryGuys, setDeliveryGuys] = useState<DeliveryGuy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +58,8 @@ export default function DeliveryGuysPage() {
   const [editing, setEditing] = useState<DeliveryGuy | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [viewing, setViewing] = useState<DeliveryGuy | null>(null);
+  const [calling, setCalling] = useState<DeliveryGuy | null>(null);
   const [disableTarget, setDisableTarget] = useState<DeliveryGuy | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeliveryGuy | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -90,6 +99,16 @@ export default function DeliveryGuysPage() {
   }
 
   async function handleSave() {
+    if (
+      !form.name.trim() ||
+      !form.email.trim() ||
+      !form.phone.trim() ||
+      (!editing && !form.password.trim())
+    ) {
+      toast.error(t("validation.completeRequired"));
+      return;
+    }
+
     setSaving(true);
     try {
       if (editing) {
@@ -189,7 +208,19 @@ export default function DeliveryGuysPage() {
   }
 
   const columns: Column<DeliveryGuy>[] = [
-    { key: "name", header: t("deliveryGuys.colName"), render: (g) => g.name },
+    {
+      key: "name",
+      header: t("deliveryGuys.colName"),
+      render: (g) => (
+        <button
+          type="button"
+          className="font-semibold text-stone-900 hover:text-amber-700 hover:underline"
+          onClick={() => setViewing(g)}
+        >
+          {g.name}
+        </button>
+      ),
+    },
     { key: "email", header: t("deliveryGuys.colEmail"), render: (g) => g.email },
     { key: "phone", header: t("deliveryGuys.colPhone"), render: (g) => g.phone ?? "—" },
     {
@@ -213,6 +244,35 @@ export default function DeliveryGuysPage() {
       header: t("deliveryGuys.colActions"),
       render: (guy) => (
         <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-green-700 hover:bg-green-50"
+            onClick={() => setCalling(guy)}
+          >
+            <HiOutlinePhone className="h-4 w-4 shrink-0" aria-hidden />
+            {t("calls.call")}
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-amber-50"
+            onClick={() => setViewing(guy)}
+          >
+            <HiOutlineEye className="h-4 w-4 shrink-0" aria-hidden />
+            {t("common.view")}
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-amber-700 hover:bg-amber-50"
+            onClick={() =>
+              router.push(`/conversations?with=${guy.id}`)
+            }
+          >
+            <HiOutlineChatBubbleLeftEllipsis
+              className="h-4 w-4 shrink-0"
+              aria-hidden
+            />
+            {t("chat.message")}
+          </button>
           <button
             type="button"
             className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-amber-700 hover:bg-amber-50"
@@ -349,6 +409,7 @@ export default function DeliveryGuysPage() {
           />
           <Input
             label={t("deliveryGuys.formPhone")}
+            required
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
@@ -366,6 +427,21 @@ export default function DeliveryGuysPage() {
           />
         </div>
       </Modal>
+
+      <DeliveryPartnerViewModal
+        partner={viewing}
+        onClose={() => setViewing(null)}
+        onCall={(partner) => {
+          setViewing(null);
+          setCalling(partner);
+        }}
+        onMessage={(partner) => {
+          setViewing(null);
+          router.push(`/conversations?with=${partner.id}`);
+        }}
+      />
+
+      <ContactCallModal partner={calling} onClose={() => setCalling(null)} />
 
       <ConfirmModal
         open={disableTarget !== null}

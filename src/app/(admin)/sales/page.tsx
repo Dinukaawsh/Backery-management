@@ -1,9 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { HiOutlineTableCells } from "react-icons/hi2";
+import {
+  HiOutlineChatBubbleLeft,
+  HiOutlineTableCells,
+} from "react-icons/hi2";
 
 import { BillModal } from "@/components/BillModal";
+import { SaleCommentsModal } from "@/components/SaleCommentsModal";
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -57,6 +61,7 @@ export default function SalesPage() {
     null,
   );
   const [billSaleId, setBillSaleId] = useState<number | null>(null);
+  const [commentsSaleId, setCommentsSaleId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -366,15 +371,26 @@ export default function SalesPage() {
                       {formatCurrency(sale.totalAmount)}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-amber-700 hover:underline"
-                    onClick={() => setBillSaleId(sale.id)}
-                  >
-                    {sale.billPrinted
-                      ? t("sales.viewBill")
-                      : t("sales.printBill")}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      title={t("comments.title")}
+                      aria-label={t("comments.title")}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-green-50 text-green-700 transition hover:bg-green-100"
+                      onClick={() => setCommentsSaleId(sale.id)}
+                    >
+                      <HiOutlineChatBubbleLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-amber-700 hover:underline"
+                      onClick={() => setBillSaleId(sale.id)}
+                    >
+                      {sale.billPrinted
+                        ? t("sales.viewBill")
+                        : t("sales.printBill")}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -388,6 +404,10 @@ export default function SalesPage() {
           setBillSaleId(null);
           void load();
         }}
+      />
+      <SaleCommentsModal
+        saleId={commentsSaleId}
+        onClose={() => setCommentsSaleId(null)}
       />
     </div>
   );

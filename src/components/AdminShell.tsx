@@ -11,13 +11,16 @@ import {
   HiOutlineBuildingStorefront,
   HiOutlineCalendarDays,
   HiOutlineChartBarSquare,
+  HiOutlineChatBubbleLeftRight,
   HiOutlineClipboardDocumentList,
   HiOutlineCog6Tooth,
   HiOutlineCube,
   HiOutlineCurrencyDollar,
+  HiOutlineMap,
   HiOutlineTruck,
 } from "react-icons/hi2";
 
+import { ChatUnreadWatcher } from "@/components/ChatUnreadWatcher";
 import { LocaleToggle } from "@/components/LocaleToggle";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -66,6 +69,16 @@ const navItems: NavItem[] = [
     icon: HiOutlineCalendarDays,
   },
   {
+    href: "/tracking",
+    key: "nav.liveMap",
+    icon: HiOutlineMap,
+  },
+  {
+    href: "/conversations",
+    key: "nav.conversations",
+    icon: HiOutlineChatBubbleLeftRight,
+  },
+  {
     href: "/notifications",
     key: "nav.notifications",
     icon: HiOutlineBell,
@@ -102,6 +115,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileName, setProfileName] = useState<string | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [chatUnread, setChatUnread] = useState(0);
 
   const currentPage = t(resolveTitleKey(pathname));
 
@@ -143,6 +157,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="admin-shell h-screen overflow-hidden bg-amber-50">
+      <ChatUnreadWatcher onCount={setChatUnread} />
       {sidebarOpen ? (
         <button
           type="button"
@@ -218,6 +233,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                       <Icon className="h-4.5 w-4.5" aria-hidden />
                     </span>
                     <span className="min-w-0 flex-1 truncate">{t(item.key)}</span>
+                    {item.href === "/conversations" && chatUnread > 0 ? (
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                          parentActive
+                            ? "bg-white text-amber-800"
+                            : "bg-amber-600 text-white"
+                        }`}
+                      >
+                        {chatUnread > 9 ? "9+" : chatUnread}
+                      </span>
+                    ) : null}
                   </Link>
 
                   {hasChildren ? (

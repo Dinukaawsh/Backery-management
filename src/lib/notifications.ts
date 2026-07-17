@@ -4,7 +4,7 @@ import { getDb } from "@/db";
 import { notifications, users } from "@/db/schema";
 import { sevenDaysAgo } from "@/lib/dates";
 
-export type NotificationType = "sale" | "assignment";
+export type NotificationType = "sale" | "assignment" | "chat";
 
 export async function notifyAdmins(input: {
   type: NotificationType;

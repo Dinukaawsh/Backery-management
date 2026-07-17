@@ -29,6 +29,11 @@ export function Input({
       {label ? (
         <label htmlFor={inputId} className="bakery-label">
           {label}
+          {props.required ? (
+            <span className="ml-1 text-red-600" aria-hidden="true">
+              *
+            </span>
+          ) : null}
         </label>
       ) : null}
 
@@ -37,7 +42,8 @@ export function Input({
           <input
             id={inputId}
             type={inputType}
-            className={className}
+            aria-invalid={Boolean(error)}
+            className={`${error ? "border-red-500" : ""} ${className}`}
             {...props}
           />
           <button
@@ -62,7 +68,8 @@ export function Input({
         <input
           id={inputId}
           type={type}
-          className={`bakery-input ${className}`}
+          aria-invalid={Boolean(error)}
+          className={`bakery-input ${error ? "border-red-500" : ""} ${className}`}
           {...props}
         />
       )}

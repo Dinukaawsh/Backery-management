@@ -160,7 +160,7 @@ export async function getMe() {
 export type AppNotification = {
   id: number;
   userId: number;
-  type: "sale" | "assignment";
+  type: "sale" | "assignment" | "chat";
   title: string;
   body: string;
   href: string | null;
@@ -609,4 +609,170 @@ export async function createSale(input: {
     body: JSON.stringify(input),
   });
   return data.sale;
+}
+
+export type DeliveryLocationPin = {
+  deliveryGuyId: number;
+  name: string;
+  phone: string | null;
+  imageUrl: string | null;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  isTracking: boolean;
+  isLive: boolean;
+  updatedAt: string;
+};
+
+export async function fetchDeliveryLocations() {
+  const data = await apiFetch<{ locations: DeliveryLocationPin[] }>(
+    "/api/locations",
+  );
+  return data.locations;
+}
+
+export type SaleComment = {
+  id: number;
+  saleId: number;
+  userId: number;
+  parentId: number | null;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  userName: string;
+  userRole: "admin" | "delivery";
+  userImageUrl: string | null;
+  canEdit: boolean;
+  canDelete: boolean;
+  replies: SaleComment[];
+};
+
+export async function fetchSaleComments(saleId: number) {
+  const data = await apiFetch<{ comments: SaleComment[] }>(
+    `/api/sales/${saleId}/comments`,
+  );
+  return data.comments;
+}
+
+export async function createSaleComment(
+  saleId: number,
+  input: { body: string; parentId?: number | null },
+) {
+  const data = await apiFetch<{ comments: SaleComment[] }>(
+    `/api/sales/${saleId}/comments`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+  return data.comments;
+}
+
+export async function updateSaleComment(commentId: number, body: string) {
+  const data = await apiFetch<{ comments: SaleComment[] }>(
+    `/api/comments/${commentId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ body }),
+    },
+  );
+  return data.comments;
+}
+
+export async function deleteSaleComment(commentId: number) {
+  const data = await apiFetch<{ comments: SaleComment[] }>(
+    `/api/comments/${commentId}`,
+    { method: "DELETE" },
+  );
+  return data.comments;
+}
+
+export type Conversation = {
+  deliveryGuyId: number;
+  deliveryGuyName: string;
+  deliveryGuyImageUrl: string | null;
+  deliveryGuyPhone?: string | null;
+  lastMessage: string | null;
+  lastMessageType?: "text" | "image" | "deleted" | null;
+  lastMessageAt: string | null;
+  unreadCount: number;
+};
+
+export type ChatMessage = {
+  id: number;
+  deliveryGuyId: number;
+  senderId: number;
+  body: string;
+  imageUrl?: string | null;
+  isDeleted?: boolean;
+  isRead: boolean;
+  editedAt?: string | null;
+  createdAt: string;
+  senderName: string;
+  senderRole: "admin" | "delivery";
+  senderImageUrl: string | null;
+  mine: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+};
+
+export async function fetchConversations() {
+  const data = await apiFetch<{
+    conversations: Conversation[];
+    unreadCount: number;
+  }>("/api/conversations");
+  return data;
+}
+
+export async function fetchChatUnreadCount() {
+  const data = await apiFetch<{ unreadCount: number }>(
+    "/api/conversations?unreadOnly=true",
+  );
+  return data.unreadCount;
+}
+
+export async function fetchChatMessages(
+  deliveryGuyId: number,
+  afterId?: number,
+) {
+  const search = new URLSearchParams();
+  if (afterId != null) search.set("afterId", String(afterId));
+  const query = search.toString();
+  const data = await apiFetch<{ messages: ChatMessage[] }>(
+    `/api/conversations/${deliveryGuyId}${query ? `?${query}` : ""}`,
+  );
+  return data.messages;
+}
+
+export async function sendChatMessage(
+  deliveryGuyId: number,
+  input: { body?: string; imageUrl?: string | null },
+) {
+  const data = await apiFetch<{ message: ChatMessage }>(
+    `/api/conversations/${deliveryGuyId}`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+  return data.message;
+}
+
+export async function updateChatMessage(messageId: number, body: string) {
+  const data = await apiFetch<{ message: ChatMessage }>(
+    `/api/chat-messages/${messageId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ body }),
+    },
+  );
+  return data.message;
+}
+
+export async function deleteChatMessage(messageId: number) {
+  const data = await apiFetch<{ message: ChatMessage | null }>(
+    `/api/chat-messages/${messageId}`,
+    { method: "DELETE" },
+  );
+  return data.message;
 }

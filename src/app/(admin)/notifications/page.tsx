@@ -113,7 +113,9 @@ export default function NotificationsPage() {
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-900">
                         {item.type === "sale"
                           ? t("notifications.typeSale")
-                          : t("notifications.typeAssignment")}
+                          : item.type === "chat"
+                            ? t("notifications.typeChat")
+                            : t("notifications.typeAssignment")}
                       </span>
                       {!item.isRead ? (
                         <span className="rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-semibold text-white">

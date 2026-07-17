@@ -111,6 +111,7 @@ export const deliveryAllocations = pgTable("delivery_allocations", {
 export const notificationTypeEnum = pgEnum("notification_type", [
   "sale",
   "assignment",
+  "chat",
 ]);
 
 export const notifications = pgTable("notifications", {
@@ -139,6 +140,55 @@ export const businessSettings = pgTable("business_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+/** Latest live location for each delivery partner (one row per user). */
+export const deliveryLocations = pgTable("delivery_locations", {
+  id: serial("id").primaryKey(),
+  deliveryGuyId: integer("delivery_guy_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" })
+    .unique(),
+  latitude: numeric("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: numeric("longitude", { precision: 10, scale: 7 }).notNull(),
+  accuracyMeters: numeric("accuracy_meters", { precision: 10, scale: 2 }),
+  isTracking: boolean("is_tracking").notNull().default(true),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+/** Facebook-style comments on a sale (optional parent = reply). */
+export const saleComments = pgTable("sale_comments", {
+  id: serial("id").primaryKey(),
+  saleId: integer("sale_id")
+    .notNull()
+    .references(() => sales.id, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  parentId: integer("parent_id"),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+/**
+ * Chat between admins and a delivery partner.
+ * One thread per deliveryGuyId; any admin can participate.
+ */
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  deliveryGuyId: integer("delivery_guy_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  senderId: integer("sender_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  body: text("body").notNull().default(""),
+  imageUrl: text("image_url"),
+  isDeleted: boolean("is_deleted").notNull().default(false),
+  isRead: boolean("is_read").notNull().default(false),
+  editedAt: timestamp("edited_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type BusinessSettings = typeof businessSettings.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -148,3 +198,6 @@ export type Sale = typeof sales.$inferSelect;
 export type SaleItem = typeof saleItems.$inferSelect;
 export type DeliveryAllocation = typeof deliveryAllocations.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type DeliveryLocation = typeof deliveryLocations.$inferSelect;
+export type SaleComment = typeof saleComments.$inferSelect;
+export type ChatMessage = typeof chatMessages.$inferSelect;

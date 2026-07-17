@@ -5,6 +5,7 @@ import { HiOutlinePrinter } from "react-icons/hi2";
 
 import { BillBusinessHeader } from "@/components/BillBusinessHeader";
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
+import { SaleComments } from "@/components/SaleComments";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -243,6 +244,8 @@ export function BillModal({ saleId, onClose }: BillModalProps) {
               amount: formatCurrency(remainingAfter),
             })}
           </p>
+
+          <SaleComments saleId={sale.id} />
         </div>
       )}
     </Modal>

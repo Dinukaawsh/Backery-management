@@ -20,6 +20,7 @@ export const users = pgTable("users", {
   imageUrl: text("image_url"),
   role: userRoleEnum("role").notNull(),
   isActive: boolean("is_active").notNull().default(true),
+  lastSeenAt: timestamp("last_seen_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

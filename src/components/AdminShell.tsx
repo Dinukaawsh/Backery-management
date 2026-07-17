@@ -28,7 +28,7 @@ import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { features } from "@/lib/features";
 import { useT } from "@/lib/i18n";
 import type { EnMessages } from "@/lib/i18n/messages/en";
-import { getMe, logout } from "@/lib/api";
+import { getMe, logout, pingPresence } from "@/lib/api";
 
 type NavChild = {
   href: string;
@@ -140,6 +140,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void loadProfile();
   }, [loadProfile, pathname]);
+
+  useEffect(() => {
+    void pingPresence().catch(() => undefined);
+    const timer = window.setInterval(() => {
+      void pingPresence().catch(() => undefined);
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     function onProfileUpdated() {

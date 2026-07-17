@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { chatMessages, users } from "@/db/schema";
 import type { UserRole } from "@/lib/auth";
 import { notifyAdmins, notifyUser } from "@/lib/notifications";
+import { presenceFromLastSeen } from "@/lib/presence";
 
 export type ChatMessageDto = {
   id: number;
@@ -32,6 +33,8 @@ export type ConversationDto = {
   lastMessageType: "text" | "image" | "deleted" | null;
   lastMessageAt: string | null;
   unreadCount: number;
+  isOnline: boolean;
+  lastSeenAt: string | null;
 };
 
 function previewFromRow(row: {
@@ -135,12 +138,20 @@ export async function listConversations(input: {
         ),
       );
 
+    const [adminPresence] = await db
+      .select({
+        lastSeenAt: sql<Date | null>`max(${users.lastSeenAt})`,
+      })
+      .from(users)
+      .where(and(eq(users.role, "admin"), eq(users.isActive, true)));
+
     const preview = last
       ? previewFromRow(last)
       : {
           lastMessage: null,
           lastMessageType: null as ConversationDto["lastMessageType"],
         };
+    const presence = presenceFromLastSeen(adminPresence?.lastSeenAt ?? null);
 
     return [
       {
@@ -152,6 +163,8 @@ export async function listConversations(input: {
         lastMessageType: preview.lastMessageType,
         lastMessageAt: last?.createdAt.toISOString() ?? null,
         unreadCount: unread?.count ?? 0,
+        isOnline: presence.isOnline,
+        lastSeenAt: presence.lastSeenAt,
       },
     ];
   }
@@ -162,6 +175,7 @@ export async function listConversations(input: {
       name: users.name,
       imageUrl: users.imageUrl,
       phone: users.phone,
+      lastSeenAt: users.lastSeenAt,
     })
     .from(users)
     .where(and(eq(users.role, "delivery"), eq(users.isActive, true)))
@@ -194,11 +208,10 @@ export async function listConversations(input: {
         ),
       );
 
-    if (!last && (unread?.count ?? 0) === 0) continue;
-
     const preview = last
       ? previewFromRow(last)
       : { lastMessage: null, lastMessageType: null as ConversationDto["lastMessageType"] };
+    const presence = presenceFromLastSeen(partner.lastSeenAt);
 
     conversations.push({
       deliveryGuyId: partner.id,
@@ -209,44 +222,43 @@ export async function listConversations(input: {
       lastMessageType: preview.lastMessageType,
       lastMessageAt: last?.createdAt.toISOString() ?? null,
       unreadCount: unread?.count ?? 0,
+      isOnline: presence.isOnline,
+      lastSeenAt: presence.lastSeenAt,
     });
   }
 
   conversations.sort((a, b) => {
     const at = a.lastMessageAt ? Date.parse(a.lastMessageAt) : 0;
     const bt = b.lastMessageAt ? Date.parse(b.lastMessageAt) : 0;
-    return bt - at;
+    if (bt !== at) return bt - at;
+    return a.deliveryGuyName.localeCompare(b.deliveryGuyName);
   });
 
   return conversations;
 }
 
-export async function listMessages(input: {
+export const CHAT_PAGE_SIZE = 20;
+
+async function fetchMessageRows(input: {
   deliveryGuyId: number;
-  viewerId: number;
-  viewerRole: UserRole;
   afterId?: number;
-}): Promise<{ error: string | null; messages: ChatMessageDto[] }> {
-  if (input.viewerRole === "delivery" && input.deliveryGuyId !== input.viewerId) {
-    return { error: "Forbidden", messages: [] };
-  }
-
-  const [partner] = await getDb()
-    .select({ id: users.id, role: users.role })
-    .from(users)
-    .where(eq(users.id, input.deliveryGuyId))
-    .limit(1);
-
-  if (!partner || partner.role !== "delivery") {
-    return { error: "Delivery partner not found", messages: [] };
-  }
-
+  beforeId?: number;
+  messageId?: number;
+  limit: number;
+  newestFirst?: boolean;
+}) {
   const conditions = [eq(chatMessages.deliveryGuyId, input.deliveryGuyId)];
+  if (input.messageId != null && Number.isInteger(input.messageId)) {
+    conditions.push(eq(chatMessages.id, input.messageId));
+  }
   if (input.afterId != null && Number.isInteger(input.afterId)) {
     conditions.push(sql`${chatMessages.id} > ${input.afterId}`);
   }
+  if (input.beforeId != null && Number.isInteger(input.beforeId)) {
+    conditions.push(sql`${chatMessages.id} < ${input.beforeId}`);
+  }
 
-  const rows = await getDb()
+  return getDb()
     .select({
       id: chatMessages.id,
       deliveryGuyId: chatMessages.deliveryGuyId,
@@ -264,21 +276,105 @@ export async function listMessages(input: {
     .from(chatMessages)
     .innerJoin(users, eq(users.id, chatMessages.senderId))
     .where(and(...conditions))
-    .orderBy(asc(chatMessages.createdAt))
-    .limit(500);
+    .orderBy(
+      input.newestFirst
+        ? desc(chatMessages.id)
+        : asc(chatMessages.id),
+    )
+    .limit(input.limit);
+}
+
+export async function listMessages(input: {
+  deliveryGuyId: number;
+  viewerId: number;
+  viewerRole: UserRole;
+  afterId?: number;
+  beforeId?: number;
+  limit?: number;
+}): Promise<{
+  error: string | null;
+  messages: ChatMessageDto[];
+  hasMore: boolean;
+}> {
+  if (input.viewerRole === "delivery" && input.deliveryGuyId !== input.viewerId) {
+    return { error: "Forbidden", messages: [], hasMore: false };
+  }
+
+  const [partner] = await getDb()
+    .select({ id: users.id, role: users.role })
+    .from(users)
+    .where(eq(users.id, input.deliveryGuyId))
+    .limit(1);
+
+  if (!partner || partner.role !== "delivery") {
+    return { error: "Delivery partner not found", messages: [], hasMore: false };
+  }
+
+  const pageSize = Math.min(
+    Math.max(input.limit ?? CHAT_PAGE_SIZE, 1),
+    100,
+  );
+
+  // Incremental poll: only messages newer than afterId.
+  if (input.afterId != null && Number.isInteger(input.afterId)) {
+    const rows = await fetchMessageRows({
+      deliveryGuyId: input.deliveryGuyId,
+      afterId: input.afterId,
+      limit: pageSize,
+      newestFirst: false,
+    });
+    return {
+      error: null,
+      hasMore: false,
+      messages: rows.map((row) =>
+        mapMessage(
+          { ...row, senderRole: row.senderRole as UserRole },
+          input.viewerId,
+        ),
+      ),
+    };
+  }
+
+  // Initial / older pages: newest-first query, then reverse for UI order.
+  const rows = await fetchMessageRows({
+    deliveryGuyId: input.deliveryGuyId,
+    beforeId: input.beforeId,
+    limit: pageSize + 1,
+    newestFirst: true,
+  });
+  const hasMore = rows.length > pageSize;
+  const page = hasMore ? rows.slice(0, pageSize) : rows;
+  page.reverse();
 
   return {
     error: null,
-    messages: rows.map((row) =>
+    hasMore,
+    messages: page.map((row) =>
       mapMessage(
-        {
-          ...row,
-          senderRole: row.senderRole as UserRole,
-        },
+        { ...row, senderRole: row.senderRole as UserRole },
         input.viewerId,
       ),
     ),
   };
+}
+
+async function getMappedMessage(input: {
+  messageId: number;
+  deliveryGuyId: number;
+  viewerId: number;
+}): Promise<ChatMessageDto | null> {
+  const rows = await fetchMessageRows({
+    deliveryGuyId: input.deliveryGuyId,
+    messageId: input.messageId,
+    limit: 1,
+    newestFirst: false,
+  });
+  const row = rows[0];
+  if (!row) return null;
+  return mapMessage(
+    { ...row, senderRole: row.senderRole as UserRole },
+    input.viewerId,
+  );
 }
 
 export async function sendMessage(input: {
@@ -357,14 +453,11 @@ export async function sendMessage(input: {
     console.error("Chat notification failed:", error);
   }
 
-  const listed = await listMessages({
+  const message = await getMappedMessage({
+    messageId: inserted.id,
     deliveryGuyId: input.deliveryGuyId,
     viewerId: input.senderId,
-    viewerRole: input.senderRole,
-    afterId: inserted.id - 1,
   });
-
-  const message = listed.messages.find((m) => m.id === inserted.id) ?? null;
   return { error: null, message };
 }
 
@@ -411,12 +504,11 @@ export async function updateMessage(input: {
     .set({ body, editedAt: new Date() })
     .where(eq(chatMessages.id, input.messageId));
 
-  const listed = await listMessages({
+  const message = await getMappedMessage({
+    messageId: input.messageId,
     deliveryGuyId: existing.deliveryGuyId,
     viewerId: input.viewerId,
-    viewerRole: input.viewerRole,
   });
-  const message = listed.messages.find((m) => m.id === input.messageId) ?? null;
   return { error: null, message };
 }
 
@@ -460,12 +552,11 @@ export async function softDeleteMessage(input: {
     })
     .where(eq(chatMessages.id, input.messageId));
 
-  const listed = await listMessages({
+  const message = await getMappedMessage({
+    messageId: input.messageId,
     deliveryGuyId: existing.deliveryGuyId,
     viewerId: input.viewerId,
-    viewerRole: input.viewerRole,
   });
-  const message = listed.messages.find((m) => m.id === input.messageId) ?? null;
   return { error: null as string | null, message };
 }
 

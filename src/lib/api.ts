@@ -697,6 +697,8 @@ export type Conversation = {
   lastMessageType?: "text" | "image" | "deleted" | null;
   lastMessageAt: string | null;
   unreadCount: number;
+  isOnline?: boolean;
+  lastSeenAt?: string | null;
 };
 
 export type ChatMessage = {
@@ -717,6 +719,10 @@ export type ChatMessage = {
   canDelete?: boolean;
 };
 
+export async function pingPresence() {
+  await apiFetch<{ ok: boolean }>("/api/presence", { method: "POST" });
+}
+
 export async function fetchConversations() {
   const data = await apiFetch<{
     conversations: Conversation[];
@@ -734,15 +740,19 @@ export async function fetchChatUnreadCount() {
 
 export async function fetchChatMessages(
   deliveryGuyId: number,
-  afterId?: number,
+  options?: { afterId?: number; beforeId?: number; limit?: number },
 ) {
   const search = new URLSearchParams();
-  if (afterId != null) search.set("afterId", String(afterId));
+  if (options?.afterId != null) search.set("afterId", String(options.afterId));
+  if (options?.beforeId != null) {
+    search.set("beforeId", String(options.beforeId));
+  }
+  if (options?.limit != null) search.set("limit", String(options.limit));
   const query = search.toString();
-  const data = await apiFetch<{ messages: ChatMessage[] }>(
+  const data = await apiFetch<{ messages: ChatMessage[]; hasMore: boolean }>(
     `/api/conversations/${deliveryGuyId}${query ? `?${query}` : ""}`,
   );
-  return data.messages;
+  return data;
 }
 
 export async function sendChatMessage(

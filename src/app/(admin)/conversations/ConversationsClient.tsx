@@ -24,6 +24,7 @@ import {
   fetchChatMessages,
   fetchConversations,
   fetchDeliveryGuys,
+  pingPresence,
   sendChatMessage,
   updateChatMessage,
   type ChatMessage,
@@ -52,6 +53,60 @@ function timeLabel(iso: string | null, locale: "en" | "si") {
     month: "short",
     day: "numeric",
   }).format(new Date(iso));
+}
+
+function colomboDateKey(iso: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Colombo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(iso));
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+function chatDateLabel(
+  iso: string,
+  locale: "en" | "si",
+  todayLabel: string,
+) {
+  if (colomboDateKey(iso) === colomboDateKey(new Date().toISOString())) {
+    return todayLabel;
+  }
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "Asia/Colombo",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(iso));
+}
+
+function DateSeparator({ label }: { label: string }) {
+  return (
+    <div className="my-4 flex items-center gap-3" aria-label={label}>
+      <div className="h-px flex-1 bg-amber-200" />
+      <span className="shrink-0 text-[11px] font-semibold text-stone-500">
+        {label}
+      </span>
+      <div className="h-px flex-1 bg-amber-200" />
+    </div>
+  );
+}
+
+function presenceLabel(
+  item: Pick<Conversation, "isOnline" | "lastSeenAt">,
+  locale: "en" | "si",
+  t: ReturnType<typeof useT>,
+) {
+  if (item.isOnline) return t("chat.online");
+  if (!item.lastSeenAt) return null;
+  const elapsedSeconds = Math.round(
+    (Date.now() - Date.parse(item.lastSeenAt)) / 1000,
+  );
+  if (elapsedSeconds < 60) return t("chat.lastSeenJustNow");
+  return t("chat.lastSeen", { time: timeLabel(item.lastSeenAt, locale) });
 }
 
 function Avatar({
@@ -121,8 +176,17 @@ export default function ConversationsPage() {
   const [callingPartner, setCallingPartner] = useState<DeliveryGuy | null>(
     null,
   );
+  const [hasMoreOlder, setHasMoreOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const threadScrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const stickToBottomRef = useRef(true);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const selectedMeta = useMemo(() => {
     const fromConv = conversations.find((c) => c.deliveryGuyId === selectedId);
@@ -137,6 +201,8 @@ export default function ConversationsPage() {
       lastMessageType: null,
       lastMessageAt: null,
       unreadCount: 0,
+      isOnline: false,
+      lastSeenAt: null,
     } satisfies Conversation;
   }, [conversations, partners, selectedId]);
 
@@ -163,17 +229,19 @@ export default function ConversationsPage() {
   }, [toast, t]);
 
   const loadThread = useCallback(
-    async (deliveryGuyId: number, quiet = false) => {
+    async (deliveryGuyId: number) => {
       try {
-        if (!quiet) setLoadingThread(true);
+        setLoadingThread(true);
+        setHasMoreOlder(false);
+        setMessages([]);
         const data = await fetchChatMessages(deliveryGuyId);
-        setMessages(data);
+        setMessages(data.messages);
+        setHasMoreOlder(data.hasMore);
+        stickToBottomRef.current = true;
       } catch (err) {
-        if (!quiet) {
-          toast.error(
-            err instanceof Error ? err.message : t("chat.failedLoad"),
-          );
-        }
+        toast.error(
+          err instanceof Error ? err.message : t("chat.failedLoad"),
+        );
       } finally {
         setLoadingThread(false);
       }
@@ -181,25 +249,99 @@ export default function ConversationsPage() {
     [toast, t],
   );
 
+  const pollNewMessages = useCallback(async (deliveryGuyId: number) => {
+    const current = messagesRef.current;
+    try {
+      if (current.length === 0) {
+        const data = await fetchChatMessages(deliveryGuyId);
+        if (data.messages.length === 0) return;
+        setMessages(data.messages);
+        setHasMoreOlder(data.hasMore);
+        return;
+      }
+      const afterId = current[current.length - 1].id;
+      const data = await fetchChatMessages(deliveryGuyId, { afterId });
+      if (data.messages.length === 0) return;
+      setMessages((prev) => {
+        const known = new Set(prev.map((m) => m.id));
+        const incoming = data.messages.filter((m) => !known.has(m.id));
+        if (incoming.length === 0) return prev;
+        return [...prev, ...incoming];
+      });
+    } catch {
+      // Ignore transient poll errors.
+    }
+  }, []);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!selectedId || loadingOlder || !hasMoreOlder) return;
+    const oldestId = messagesRef.current[0]?.id;
+    if (oldestId == null) return;
+
+    const scroller = threadScrollRef.current;
+    const previousHeight = scroller?.scrollHeight ?? 0;
+    const previousTop = scroller?.scrollTop ?? 0;
+
+    setLoadingOlder(true);
+    try {
+      const data = await fetchChatMessages(selectedId, { beforeId: oldestId });
+      setMessages((prev) => {
+        const known = new Set(prev.map((m) => m.id));
+        const older = data.messages.filter((m) => !known.has(m.id));
+        return [...older, ...prev];
+      });
+      setHasMoreOlder(data.hasMore);
+      requestAnimationFrame(() => {
+        const el = threadScrollRef.current;
+        if (!el) return;
+        el.scrollTop = el.scrollHeight - previousHeight + previousTop;
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("chat.failedLoad"),
+      );
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [selectedId, loadingOlder, hasMoreOlder, toast, t]);
+
   useEffect(() => {
     void loadList();
     const timer = window.setInterval(() => void loadList(), 5000);
-    return () => window.clearInterval(timer);
+    const presenceTimer = window.setInterval(() => {
+      void pingPresence().catch(() => undefined);
+    }, 30000);
+    void pingPresence().catch(() => undefined);
+    return () => {
+      window.clearInterval(timer);
+      window.clearInterval(presenceTimer);
+    };
   }, [loadList]);
 
   useEffect(() => {
     if (selectedId == null) return;
-    void loadThread(selectedId, false);
+    void loadThread(selectedId);
     const timer = window.setInterval(
-      () => void loadThread(selectedId, true),
+      () => void pollNewMessages(selectedId),
       3000,
     );
     return () => window.clearInterval(timer);
-  }, [selectedId, loadThread]);
+  }, [selectedId, loadThread, pollNewMessages]);
 
   useEffect(() => {
+    if (!stickToBottomRef.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, selectedId]);
+
+  function handleThreadScroll() {
+    const el = threadScrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < 80;
+    if (el.scrollTop < 80) {
+      void loadOlderMessages();
+    }
+  }
 
   async function uploadChatImage(file: File) {
     setUploading(true);
@@ -238,6 +380,7 @@ export default function ConversationsPage() {
         const without = prev.filter((m) => m.id !== message.id);
         return [...without, message];
       });
+      stickToBottomRef.current = true;
       setDraft("");
       setPendingImage(null);
       void loadList();
@@ -278,7 +421,7 @@ export default function ConversationsPage() {
           prev.map((m) => (m.id === messageId ? { ...m, ...updated } : m)),
         );
       } else if (selectedId) {
-        await loadThread(selectedId, true);
+        await loadThread(selectedId);
       }
       void loadList();
     } catch (err) {
@@ -304,6 +447,8 @@ export default function ConversationsPage() {
           lastMessageType: null,
           lastMessageAt: null,
           unreadCount: 0,
+          isOnline: false,
+          lastSeenAt: null,
         });
       }
     }
@@ -366,7 +511,15 @@ export default function ConversationsPage() {
                       <p className="truncate text-xs text-stone-500">
                         {previewLabel(item, t)}
                       </p>
-                      {item.lastMessageAt ? (
+                      {presenceLabel(item, locale, t) ? (
+                        <p
+                          className={`mt-0.5 text-[10px] font-medium ${
+                            item.isOnline ? "text-green-600" : "text-stone-400"
+                          }`}
+                        >
+                          {presenceLabel(item, locale, t)}
+                        </p>
+                      ) : item.lastMessageAt ? (
                         <p className="mt-0.5 text-[10px] text-stone-400">
                           {timeLabel(item.lastMessageAt, locale)}
                         </p>
@@ -395,6 +548,17 @@ export default function ConversationsPage() {
                   <p className="truncate font-semibold text-stone-900">
                     {selectedMeta.deliveryGuyName}
                   </p>
+                  {presenceLabel(selectedMeta, locale, t) ? (
+                    <p
+                      className={`text-xs font-medium ${
+                        selectedMeta.isOnline
+                          ? "text-green-600"
+                          : "text-stone-500"
+                      }`}
+                    >
+                      {presenceLabel(selectedMeta, locale, t)}
+                    </p>
+                  ) : null}
                   <button
                     type="button"
                     disabled={!selectedPartner}
@@ -415,7 +579,11 @@ export default function ConversationsPage() {
                 </button>
               </div>
 
-              <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto bg-gradient-to-b from-amber-50/40 to-white px-4 py-4">
+              <div
+                ref={threadScrollRef}
+                onScroll={handleThreadScroll}
+                className="custom-scrollbar flex-1 space-y-3 overflow-y-auto bg-gradient-to-b from-amber-50/40 to-white px-4 py-4"
+              >
                 {loadingThread ? (
                   <div className="flex justify-center py-10">
                     <LoadingSpinner />
@@ -425,11 +593,36 @@ export default function ConversationsPage() {
                     {t("chat.emptyThread")}
                   </p>
                 ) : (
-                  messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex gap-2 ${msg.mine ? "justify-end" : "justify-start"}`}
-                    >
+                  <>
+                    {loadingOlder ? (
+                      <div className="flex justify-center py-2">
+                        <LoadingSpinner />
+                      </div>
+                    ) : hasMoreOlder ? (
+                      <p className="py-1 text-center text-[11px] text-stone-400">
+                        {t("chat.loadingOlder")}
+                      </p>
+                    ) : null}
+                    {messages.map((msg, index) => {
+                    const previous = messages[index - 1];
+                    const startsDate =
+                      !previous ||
+                      colomboDateKey(previous.createdAt) !==
+                        colomboDateKey(msg.createdAt);
+                    return (
+                      <div key={msg.id}>
+                        {startsDate ? (
+                          <DateSeparator
+                            label={chatDateLabel(
+                              msg.createdAt,
+                              locale,
+                              t("chat.today"),
+                            )}
+                          />
+                        ) : null}
+                        <div
+                          className={`flex gap-2 ${msg.mine ? "justify-end" : "justify-start"}`}
+                        >
                       {!msg.mine ? (
                         <Avatar
                           name={msg.senderName}
@@ -564,10 +757,13 @@ export default function ConversationsPage() {
                         </div>
 
                       </div>
-                    </div>
-                  ))
+                        </div>
+                      </div>
+                    );
+                  })}
+                    <div ref={bottomRef} />
+                  </>
                 )}
-                <div ref={bottomRef} />
               </div>
 
               <div className="border-t border-amber-100 bg-white p-3">

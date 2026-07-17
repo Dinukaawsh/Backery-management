@@ -17,6 +17,13 @@ function parseDeliveryGuyId(id: string) {
   return deliveryGuyId;
 }
 
+function parsePositiveInt(raw: string | null) {
+  if (raw == null) return undefined;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) return undefined;
+  return value;
+}
+
 export async function OPTIONS() {
   return corsOptionsResponse();
 }
@@ -37,17 +44,24 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     const { searchParams } = new URL(request.url);
-    const afterIdRaw = searchParams.get("afterId");
-    const afterId =
-      afterIdRaw != null && Number.isInteger(Number(afterIdRaw))
-        ? Number(afterIdRaw)
-        : undefined;
+    const afterId = parsePositiveInt(searchParams.get("afterId"));
+    const beforeId = parsePositiveInt(searchParams.get("beforeId"));
+    const limit = parsePositiveInt(searchParams.get("limit"));
+
+    if (afterId != null && beforeId != null) {
+      return corsResponse(
+        { error: "Use either afterId or beforeId, not both" },
+        400,
+      );
+    }
 
     const result = await listMessages({
       deliveryGuyId,
       viewerId: auth.session.id,
       viewerRole: auth.session.role,
       afterId,
+      beforeId,
+      limit,
     });
 
     if (result.error === "Forbidden") {
@@ -57,14 +71,19 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return corsResponse({ error: result.error }, 404);
     }
 
-    // Mark as read when opening the thread
-    await markConversationRead({
-      deliveryGuyId,
-      viewerId: auth.session.id,
-      viewerRole: auth.session.role,
-    });
+    // Mark as read when opening or refreshing the thread (not older-page loads).
+    if (beforeId == null) {
+      await markConversationRead({
+        deliveryGuyId,
+        viewerId: auth.session.id,
+        viewerRole: auth.session.role,
+      });
+    }
 
-    return corsResponse({ messages: result.messages });
+    return corsResponse({
+      messages: result.messages,
+      hasMore: result.hasMore,
+    });
   } catch (error) {
     console.error("GET /api/conversations/[deliveryGuyId] failed:", error);
     return corsResponse({ error: "Failed to fetch messages" }, 500);

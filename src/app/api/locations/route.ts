@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 
 import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
+import { FEATURE_DISABLED_MESSAGE, features } from "@/lib/features";
 import {
   listDeliveryLocationsForAdmin,
   stopDeliveryTracking,
@@ -12,8 +13,18 @@ export async function OPTIONS() {
   return corsOptionsResponse();
 }
 
+function requireMapFeature() {
+  if (!features.map) {
+    return corsResponse({ error: FEATURE_DISABLED_MESSAGE }, 403);
+  }
+  return null;
+}
+
 /** Admin: list live delivery pins. */
 export async function GET(request: NextRequest) {
+  const disabled = requireMapFeature();
+  if (disabled) return disabled;
+
   const auth = await requireAuth(request, ["admin"]);
   if (auth.error || !auth.session) return auth.error;
 
@@ -28,6 +39,9 @@ export async function GET(request: NextRequest) {
 
 /** Delivery: push current GPS coordinates. */
 export async function POST(request: NextRequest) {
+  const disabled = requireMapFeature();
+  if (disabled) return disabled;
+
   const auth = await requireAuth(request, ["delivery"]);
   if (auth.error || !auth.session) return auth.error;
 
@@ -68,6 +82,9 @@ export async function POST(request: NextRequest) {
 
 /** Delivery: stop sharing location. */
 export async function DELETE(request: NextRequest) {
+  const disabled = requireMapFeature();
+  if (disabled) return disabled;
+
   const auth = await requireAuth(request, ["delivery"]);
   if (auth.error || !auth.session) return auth.error;
 

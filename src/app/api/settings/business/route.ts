@@ -6,6 +6,7 @@ import {
   updateBusinessSettings,
 } from "@/lib/business-settings";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
+import { getAppFeatures } from "@/lib/features";
 
 export async function OPTIONS() {
   return corsOptionsResponse();
@@ -14,7 +15,7 @@ export async function OPTIONS() {
 export async function GET() {
   try {
     const settings = await getBusinessSettings();
-    return corsResponse({ settings });
+    return corsResponse({ settings, features: getAppFeatures() });
   } catch (error) {
     console.error("GET /api/settings/business failed:", error);
     return corsResponse({ error: "Failed to load business settings" }, 500);

@@ -25,6 +25,7 @@ import { LocaleToggle } from "@/components/LocaleToggle";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
+import { features } from "@/lib/features";
 import { useT } from "@/lib/i18n";
 import type { EnMessages } from "@/lib/i18n/messages/en";
 import { getMe, logout } from "@/lib/api";
@@ -86,13 +87,20 @@ const navItems: NavItem[] = [
   { href: "/settings", key: "nav.settings", icon: HiOutlineCog6Tooth },
 ];
 
+const visibleNavItems = navItems.filter((item) => {
+  if (item.href === "/tracking") return features.map;
+  if (item.href === "/calendar") return features.calendar;
+  if (item.href === "/conversations") return features.messages;
+  return true;
+});
+
 function isExactOrChildPath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function resolveTitleKey(pathname: string): keyof EnMessages {
   const flat: Array<{ href: string; key: keyof EnMessages }> = [];
-  for (const item of navItems) {
+  for (const item of visibleNavItems) {
     flat.push({ href: item.href, key: item.key });
     for (const child of item.children ?? []) {
       flat.push({ href: child.href, key: child.key });
@@ -157,7 +165,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="admin-shell h-screen overflow-hidden bg-amber-50">
-      <ChatUnreadWatcher onCount={setChatUnread} />
+      {features.messages ? (
+        <ChatUnreadWatcher onCount={setChatUnread} />
+      ) : null}
       {sidebarOpen ? (
         <button
           type="button"
@@ -197,7 +207,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
         <nav className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4">
           <div className="flex flex-col gap-1.5">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon;
               const hasChildren = (item.children?.length ?? 0) > 0;
               const childActive = (item.children ?? []).some((child) =>

@@ -37,6 +37,7 @@ import {
   type DeliveryGuy,
 } from "@/lib/api";
 import { downloadPdf } from "@/lib/export-pdf";
+import { features } from "@/lib/features";
 import { useT } from "@/lib/i18n";
 
 const emptyForm = {
@@ -260,19 +261,21 @@ export default function DeliveryGuysPage() {
             <HiOutlineEye className="h-4 w-4 shrink-0" aria-hidden />
             {t("common.view")}
           </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-amber-700 hover:bg-amber-50"
-            onClick={() =>
-              router.push(`/conversations?with=${guy.id}`)
-            }
-          >
-            <HiOutlineChatBubbleLeftEllipsis
-              className="h-4 w-4 shrink-0"
-              aria-hidden
-            />
-            {t("chat.message")}
-          </button>
+          {features.messages ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-amber-700 hover:bg-amber-50"
+              onClick={() =>
+                router.push(`/conversations?with=${guy.id}`)
+              }
+            >
+              <HiOutlineChatBubbleLeftEllipsis
+                className="h-4 w-4 shrink-0"
+                aria-hidden
+              />
+              {t("chat.message")}
+            </button>
+          ) : null}
           <button
             type="button"
             className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-amber-700 hover:bg-amber-50"
@@ -435,10 +438,14 @@ export default function DeliveryGuysPage() {
           setViewing(null);
           setCalling(partner);
         }}
-        onMessage={(partner) => {
-          setViewing(null);
-          router.push(`/conversations?with=${partner.id}`);
-        }}
+        onMessage={
+          features.messages
+            ? (partner) => {
+                setViewing(null);
+                router.push(`/conversations?with=${partner.id}`);
+              }
+            : undefined
+        }
       />
 
       <ContactCallModal partner={calling} onClose={() => setCalling(null)} />

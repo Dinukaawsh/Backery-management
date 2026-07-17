@@ -34,7 +34,15 @@ export function DeliveryPartnerViewModal({
       onClose={onClose}
       footer={
         partner ? (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div
+            className={`grid gap-3 ${
+              onCall && onMessage
+                ? "sm:grid-cols-3"
+                : onCall || onMessage
+                  ? "sm:grid-cols-2"
+                  : ""
+            }`}
+          >
             <Button variant="secondary" fullWidth onClick={onClose}>
               {t("common.close")}
             </Button>

@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { softDeleteMessage, updateMessage } from "@/lib/chat";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
+import { FEATURE_DISABLED_MESSAGE, features } from "@/lib/features";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -17,6 +18,10 @@ export async function OPTIONS() {
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  if (!features.messages) {
+    return corsResponse({ error: FEATURE_DISABLED_MESSAGE }, 403);
+  }
+
   const auth = await requireAuth(request);
   if (auth.error || !auth.session) return auth.error;
 
@@ -51,6 +56,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
+  if (!features.messages) {
+    return corsResponse({ error: FEATURE_DISABLED_MESSAGE }, 403);
+  }
+
   const auth = await requireAuth(request);
   if (auth.error || !auth.session) return auth.error;
 

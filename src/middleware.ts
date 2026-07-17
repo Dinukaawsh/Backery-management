@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { verifyToken } from "@/lib/auth";
+import { FEATURE_ROUTE_GATES, features } from "@/lib/features";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,6 +49,15 @@ export async function middleware(request: NextRequest) {
 
   if (session.role !== "admin") {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  for (const gate of FEATURE_ROUTE_GATES) {
+    if (
+      (pathname === gate.prefix || pathname.startsWith(`${gate.prefix}/`)) &&
+      !features[gate.enabled]
+    ) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   return NextResponse.next();

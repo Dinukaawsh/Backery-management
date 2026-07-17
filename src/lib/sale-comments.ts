@@ -12,6 +12,7 @@ export type SaleCommentDto = {
   body: string;
   createdAt: string;
   updatedAt: string;
+  isEdited: boolean;
   userName: string;
   userRole: UserRole;
   userImageUrl: string | null;
@@ -66,6 +67,7 @@ function mapComment(
     body: row.body,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    isEdited: row.updatedAt.getTime() > row.createdAt.getTime(),
     userName: row.userName,
     userRole: row.userRole,
     userImageUrl: row.userImageUrl,

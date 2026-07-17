@@ -9,6 +9,7 @@ import {
 } from "react-icons/hi2";
 
 import { Button } from "@/components/ui/Button";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   createSaleComment,
@@ -76,6 +77,7 @@ export function SaleComments({ saleId }: SaleCommentsProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [actionMenuId, setActionMenuId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [visibleCount, setVisibleCount] = useState(10);
 
@@ -140,7 +142,6 @@ export function SaleComments({ saleId }: SaleCommentsProps) {
 
   async function handleDelete(commentId: number) {
     if (saving) return;
-    if (!window.confirm(t("comments.deleteConfirm"))) return;
     setSaving(true);
     try {
       const next = await deleteSaleComment(commentId);
@@ -151,6 +152,7 @@ export function SaleComments({ saleId }: SaleCommentsProps) {
       );
     } finally {
       setSaving(false);
+      setDeleteTargetId(null);
     }
   }
 
@@ -209,7 +211,7 @@ export function SaleComments({ saleId }: SaleCommentsProps) {
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
                         onClick={() => {
                           setActionMenuId(null);
-                          void handleDelete(comment.id);
+                          setDeleteTargetId(comment.id);
                         }}
                       >
                         <HiOutlineTrash className="h-4 w-4" />
@@ -232,6 +234,11 @@ export function SaleComments({ saleId }: SaleCommentsProps) {
               <span className="text-[11px] text-stone-400">
                 {timeLabel(comment.createdAt)}
               </span>
+              {comment.isEdited ? (
+                <span className="text-[11px] text-stone-400">
+                  {t("comments.edited")}
+                </span>
+              ) : null}
             </div>
             {editing ? (
               <div className="mt-2 space-y-2">
@@ -359,6 +366,18 @@ export function SaleComments({ saleId }: SaleCommentsProps) {
           </Button>
         </div>
       </div>
+      <ConfirmModal
+        open={deleteTargetId !== null}
+        title={t("common.delete")}
+        message={t("comments.deleteConfirm")}
+        confirmLabel={t("common.delete")}
+        variant="danger"
+        loading={saving}
+        onConfirm={() => {
+          if (deleteTargetId !== null) void handleDelete(deleteTargetId);
+        }}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

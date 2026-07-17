@@ -99,6 +99,7 @@ export const si: { [K in keyof EnMessages]: string } = {
   "comments.loadMore": "තවත් අදහස් {count}ක් පෙන්වන්න",
   "comments.replyingTo": "{name} වෙත පිළිතුරු",
   "comments.deleteConfirm": "මෙම අදහස මකන්නද?",
+  "comments.edited": "සංස්කරණය කළා",
   "comments.failedLoad": "අදහස් පූරණය අසාර්ථක විය",
   "comments.failedSave": "අදහස සුරැකීම අසාර්ථක විය",
   "comments.failedDelete": "අදහස මැකීම අසාර්ථක විය",

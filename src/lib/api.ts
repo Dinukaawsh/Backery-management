@@ -639,6 +639,7 @@ export type SaleComment = {
   body: string;
   createdAt: string;
   updatedAt: string;
+  isEdited: boolean;
   userName: string;
   userRole: "admin" | "delivery";
   userImageUrl: string | null;

@@ -14,6 +14,7 @@ import {
 
 import { Button } from "@/components/ui/Button";
 import { ContactCallModal } from "@/components/ContactCallModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { DeliveryPartnerViewModal } from "@/components/DeliveryPartnerViewModal";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -111,6 +112,8 @@ export default function ConversationsPage() {
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [actionMenuId, setActionMenuId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [editDraft, setEditDraft] = useState("");
   const [viewingPartner, setViewingPartner] = useState<DeliveryGuy | null>(
     null,
@@ -267,7 +270,7 @@ export default function ConversationsPage() {
   }
 
   async function handleDelete(messageId: number) {
-    if (!window.confirm(t("chat.deleteConfirm"))) return;
+    setDeleting(true);
     try {
       const updated = await deleteChatMessage(messageId);
       if (updated) {
@@ -282,6 +285,9 @@ export default function ConversationsPage() {
       toast.error(
         err instanceof Error ? err.message : t("chat.failedDelete"),
       );
+    } finally {
+      setDeleting(false);
+      setDeleteTargetId(null);
     }
   }
 
@@ -479,7 +485,7 @@ export default function ConversationsPage() {
                                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
                                     onClick={() => {
                                       setActionMenuId(null);
-                                      void handleDelete(msg.id);
+                                      setDeleteTargetId(msg.id);
                                     }}
                                   >
                                     <HiOutlineTrash className="h-4 w-4" />
@@ -646,6 +652,18 @@ export default function ConversationsPage() {
       <ContactCallModal
         partner={callingPartner}
         onClose={() => setCallingPartner(null)}
+      />
+      <ConfirmModal
+        open={deleteTargetId !== null}
+        title={t("common.delete")}
+        message={t("chat.deleteConfirm")}
+        confirmLabel={t("common.delete")}
+        variant="danger"
+        loading={deleting}
+        onConfirm={() => {
+          if (deleteTargetId !== null) void handleDelete(deleteTargetId);
+        }}
+        onCancel={() => setDeleteTargetId(null)}
       />
     </div>
   );

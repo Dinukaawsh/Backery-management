@@ -97,6 +97,7 @@ export const en = {
   "comments.loadMore": "Load {count} more comments",
   "comments.replyingTo": "Replying to {name}",
   "comments.deleteConfirm": "Delete this comment?",
+  "comments.edited": "edited",
   "comments.failedLoad": "Failed to load comments",
   "comments.failedSave": "Failed to save comment",
   "comments.failedDelete": "Failed to delete comment",

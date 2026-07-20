@@ -94,9 +94,18 @@ export function BillPreview({ settings, className = "" }: BillPreviewProps) {
           <tbody>
             {SAMPLE_ITEMS.map((item) => (
               <tr key={item.name} className="border-b border-stone-100">
-                <td className="py-1.5 text-black">{item.name}</td>
-                <td className="py-1.5 text-right">{item.quantity}</td>
-                <td className="py-1.5 text-right">
+                <td className="py-1.5 text-black">
+                  <div>{item.name}</div>
+                  <div className="mt-0.5 text-[9px] text-stone-500">
+                    {t("bill.itemCalculation", {
+                      price: formatCurrency(item.unitPrice),
+                      qty: item.quantity,
+                      total: formatCurrency(item.quantity * item.unitPrice),
+                    })}
+                  </div>
+                </td>
+                <td className="py-1.5 text-right align-top">{item.quantity}</td>
+                <td className="py-1.5 text-right align-top">
                   {formatCurrency(item.quantity * item.unitPrice)}
                 </td>
               </tr>

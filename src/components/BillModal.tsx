@@ -182,12 +182,23 @@ export function BillModal({ saleId, onClose }: BillModalProps) {
               <tbody>
                 {sale.items?.map((item) => (
                   <tr key={item.id} className="border-b border-amber-50">
-                    <td className="py-2">{item.productName}</td>
-                    <td className="py-2 text-right">{item.quantity}</td>
-                    <td className="py-2 text-right">
+                    <td className="py-2">
+                      <div>{item.productName}</div>
+                      <div className="mt-0.5 text-xs text-stone-500">
+                        {t("bill.itemCalculation", {
+                          price: formatCurrency(item.unitPrice),
+                          qty: item.quantity,
+                          total: formatCurrency(
+                            Number(item.unitPrice) * item.quantity,
+                          ),
+                        })}
+                      </div>
+                    </td>
+                    <td className="py-2 text-right align-top">{item.quantity}</td>
+                    <td className="py-2 text-right align-top">
                       {formatCurrency(item.unitPrice)}
                     </td>
-                    <td className="py-2 text-right">
+                    <td className="py-2 text-right align-top">
                       {formatCurrency(Number(item.unitPrice) * item.quantity)}
                     </td>
                   </tr>

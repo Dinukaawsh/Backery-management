@@ -194,6 +194,7 @@ export const en = {
   "bill.shop": "Shop",
   "bill.delivery": "Delivery",
   "bill.product": "Product",
+  "bill.itemCalculation": "{price} × {qty} = {total}",
   "bill.qty": "Qty",
   "bill.priceRs": "Price (Rs)",
   "bill.totalRs": "Total (Rs)",

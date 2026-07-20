@@ -197,6 +197,7 @@ export const si: { [K in keyof EnMessages]: string } = {
   "bill.shop": "සාප්පුව",
   "bill.delivery": "බෙදාහැරීම",
   "bill.product": "නිෂ්පාදනය",
+  "bill.itemCalculation": "{price} × {qty} = {total}",
   "bill.qty": "ප්‍රමාණය",
   "bill.priceRs": "මිල (රු)",
   "bill.totalRs": "මුළු (රු)",

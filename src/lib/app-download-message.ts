@@ -1,8 +1,11 @@
+import type { EnMessages } from "@/lib/i18n/messages/en";
+
+type MessageKey = keyof EnMessages;
+
 type Translate = (
-  key: string,
+  key: MessageKey,
   params?: Record<string, string | number>,
 ) => string;
-
 export function buildAppDownloadPartnerMessage({
   businessName,
   shareUrl,

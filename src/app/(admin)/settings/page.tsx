@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { IconType } from "react-icons";
 import {
   HiOutlineBuildingStorefront,
+  HiOutlineClipboardDocument,
   HiOutlineCog6Tooth,
   HiOutlineDevicePhoneMobile,
   HiOutlineDocumentText,
@@ -34,6 +35,7 @@ import {
   updateProfile,
   type AppDownloadSettings,
 } from "@/lib/api";
+import { buildAppDownloadPartnerMessage } from "@/lib/app-download-message";
 import { useT } from "@/lib/i18n";
 
 function FieldLabel({
@@ -161,6 +163,7 @@ export default function SettingsPage() {
   const [editDownloadUsername, setEditDownloadUsername] = useState("");
   const [editDownloadPassword, setEditDownloadPassword] = useState("");
   const [editDownloadUrl, setEditDownloadUrl] = useState("");
+  const [knownDownloadPassword, setKnownDownloadPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -218,6 +221,37 @@ export default function SettingsPage() {
     try {
       await navigator.clipboard.writeText(appDownload.shareUrl);
       toast.success(t("settings.linkCopiedToast"));
+    } catch {
+      toast.error(t("settings.copyFailedToast"));
+    }
+  }
+
+  async function copyAppDownloadMessage(password?: string) {
+    const resolvedPassword = password?.trim() || knownDownloadPassword.trim();
+    const username = appDownload?.username?.trim();
+    const shareUrl = appDownload?.shareUrl?.trim();
+
+    if (!username || !shareUrl) {
+      toast.error(t("settings.appDownloadPasswordRequired"));
+      return;
+    }
+
+    if (!resolvedPassword) {
+      toast.error(t("settings.appDownloadPasswordRequired"));
+      return;
+    }
+
+    const message = buildAppDownloadPartnerMessage({
+      businessName: settings.businessName || "Bakery",
+      shareUrl,
+      username,
+      password: resolvedPassword,
+      t,
+    });
+
+    try {
+      await navigator.clipboard.writeText(message);
+      toast.success(t("settings.appDownloadMessageCopied"));
     } catch {
       toast.error(t("settings.copyFailedToast"));
     }
@@ -295,6 +329,10 @@ export default function SettingsPage() {
         password: editDownloadPassword.trim() || undefined,
         downloadUrl: editDownloadUrl.trim(),
       });
+
+      if (editDownloadPassword.trim()) {
+        setKnownDownloadPassword(editDownloadPassword.trim());
+      }
 
       setAppDownload(updated);
       setAppDownloadEditOpen(false);
@@ -454,13 +492,28 @@ export default function SettingsPage() {
                   {appDownload?.shareUrl ?? "—"}
                 </p>
                 {appDownload?.shareUrl ? (
-                  <Button
-                    variant="secondary"
-                    onClick={() => void copyShareUrl()}
-                    className="w-full"
-                  >
-                    {t("common.copy")}
-                  </Button>
+                  <div className="grid gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => void copyShareUrl()}
+                      className="w-full"
+                    >
+                      {t("common.copy")}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => void copyAppDownloadMessage()}
+                      className="w-full"
+                    >
+                      <span className="inline-flex items-center justify-center gap-1.5">
+                        <HiOutlineClipboardDocument className="h-4 w-4" />
+                        {t("settings.copyMessage")}
+                      </span>
+                    </Button>
+                    <p className="text-[11px] leading-snug text-stone-500">
+                      {t("settings.copyMessageHint")}
+                    </p>
+                  </div>
                 ) : null}
               </div>
             </div>
@@ -568,23 +621,37 @@ export default function SettingsPage() {
         onClose={() => setAppDownloadEditOpen(false)}
         size="lg"
         footer={
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             <Button
               variant="secondary"
               fullWidth
-              onClick={() => setAppDownloadEditOpen(false)}
+              onClick={() =>
+                void copyAppDownloadMessage(editDownloadPassword)
+              }
             >
-              {t("common.cancel")}
+              <span className="inline-flex items-center justify-center gap-1.5">
+                <HiOutlineClipboardDocument className="h-4 w-4" />
+                {t("settings.copyMessage")}
+              </span>
             </Button>
-            <Button
-              fullWidth
-              onClick={() => void handleAppDownloadSave()}
-              disabled={loading}
-            >
-              {loading
-                ? t("common.saving")
-                : t("settings.saveDownloadSettings")}
-            </Button>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setAppDownloadEditOpen(false)}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                fullWidth
+                onClick={() => void handleAppDownloadSave()}
+                disabled={loading}
+              >
+                {loading
+                  ? t("common.saving")
+                  : t("settings.saveDownloadSettings")}
+              </Button>
+            </div>
           </div>
         }
       >

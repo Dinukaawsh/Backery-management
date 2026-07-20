@@ -584,6 +584,24 @@ export const en = {
   "settings.confirmNewPassword": "Confirm new password",
   "settings.linkCopiedToast": "Download link copied",
   "settings.copyFailedToast": "Could not copy link",
+  "settings.copyMessage": "Copy message for partner",
+  "settings.copyMessageHint":
+    "Includes download link, username, and password. Re-enter the password in Configure if you need to copy it again later.",
+  "settings.appDownloadMessageCopied": "Download instructions copied for chat",
+  "settings.appDownloadPasswordRequired":
+    "Enter the download password in Configure to copy the full message.",
+  "settings.appDownloadMessageTitle": "📱 {businessName} — Mobile app download",
+  "settings.appDownloadMessageIntro":
+    "Hi! Please install our delivery app using the details below:",
+  "settings.appDownloadMessageLink": "🔗 Download page: {url}",
+  "settings.appDownloadMessageUsername": "👤 Username: {username}",
+  "settings.appDownloadMessagePassword": "🔑 Password: {password}",
+  "settings.appDownloadMessageSteps": "Steps:",
+  "settings.appDownloadMessageStep1": "1. Open the link on your Android phone",
+  "settings.appDownloadMessageStep2":
+    "2. Enter the username and password above",
+  "settings.appDownloadMessageStep3": "3. Download and install the APK",
+  "settings.appDownloadMessageThanks": "Thank you!",
   "settings.passwordsMismatch": "New passwords do not match",
   "settings.currentPasswordRequired":
     "Enter your current password to change email or password",

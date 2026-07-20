@@ -587,6 +587,25 @@ export const si: { [K in keyof EnMessages]: string } = {
   "settings.confirmNewPassword": "නව මුරපදය තහවුරු කරන්න",
   "settings.linkCopiedToast": "බාගත කිරීමේ සබැඳිය පිටපත් විය",
   "settings.copyFailedToast": "සබැඳිය පිටපත් කළ නොහැකි විය",
+  "settings.copyMessage": "හවුල්කරු සඳහා පණිවිඩය පිටපත් කරන්න",
+  "settings.copyMessageHint":
+    "බාගත කිරීමේ සබැඳිය, පරිශීලක නාමය සහ මුරපදය ඇතුළත් වේ. පසුව නැවත පිටපත් කිරීමට අවශ්‍ය නම් සැකසීම් තුළ මුරපදය නැවත ඇතුළත් කරන්න.",
+  "settings.appDownloadMessageCopied":
+    "චැට් සඳහා බාගත කිරීමේ උපදෙස් පිටපත් විය",
+  "settings.appDownloadPasswordRequired":
+    "සම්පූර්ණ පණිවිඩය පිටපත් කිරීමට සැකසීම් තුළ බාගත කිරීමේ මුරපදය ඇතුළත් කරන්න.",
+  "settings.appDownloadMessageTitle": "📱 {businessName} — ජංගම යෙදුම බාගත කිරීම",
+  "settings.appDownloadMessageIntro":
+    "ආයුබෝවන්! පහත විස්තර භාවිතා කර අපගේ බෙදාහැරීමේ යෙදුම ස්ථාපනය කරන්න:",
+  "settings.appDownloadMessageLink": "🔗 බාගත කිරීමේ පිටුව: {url}",
+  "settings.appDownloadMessageUsername": "👤 පරිශීලක නාමය: {username}",
+  "settings.appDownloadMessagePassword": "🔑 මුරපදය: {password}",
+  "settings.appDownloadMessageSteps": "පියවර:",
+  "settings.appDownloadMessageStep1": "1. ඔබේ Android දුරකථනයෙන් සබැඳිය විවෘත කරන්න",
+  "settings.appDownloadMessageStep2":
+    "2. ඉහත පරිශීලක නාමය සහ මුරපදය ඇතුළත් කරන්න",
+  "settings.appDownloadMessageStep3": "3. APK බාගත කර ස්ථාපනය කරන්න",
+  "settings.appDownloadMessageThanks": "ස්තූතියි!",
   "settings.passwordsMismatch": "නව මුරපද නොගැලපේ",
   "settings.currentPasswordRequired":
     "විද්‍යුත් තැපෑල හෝ මුරපදය වෙනස් කිරීමට වත්මන් මුරපදය ඇතුළත් කරන්න",

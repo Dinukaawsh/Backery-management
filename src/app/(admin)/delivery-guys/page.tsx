@@ -17,6 +17,7 @@ import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { ContactCallModal } from "@/components/ContactCallModal";
 import { DeliveryPartnerViewModal } from "@/components/DeliveryPartnerViewModal";
 import { Button } from "@/components/ui/Button";
+import { ClearFiltersButton } from "@/components/ui/ClearFiltersButton";
 import {
   DownloadPdfButton,
   PageHeaderActions,
@@ -65,6 +66,12 @@ export default function DeliveryGuysPage() {
   const [deleteTarget, setDeleteTarget] = useState<DeliveryGuy | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [statusTab, setStatusTab] = useState<"active" | "inactive">("active");
+
+  const filtersActive = statusTab !== "active";
+
+  function clearFilters() {
+    setStatusTab("active");
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -216,7 +223,10 @@ export default function DeliveryGuysPage() {
         <button
           type="button"
           className="font-semibold text-stone-900 hover:text-amber-700 hover:underline"
-          onClick={() => setViewing(g)}
+          onClick={(event) => {
+            event.stopPropagation();
+            setViewing(g);
+          }}
         >
           {g.name}
         </button>
@@ -244,7 +254,10 @@ export default function DeliveryGuysPage() {
       key: "actions",
       header: t("deliveryGuys.colActions"),
       render: (guy) => (
-        <div className="flex flex-wrap gap-1.5">
+        <div
+          className="flex flex-wrap gap-1.5"
+          onClick={(event) => event.stopPropagation()}
+        >
           <button
             type="button"
             className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-green-700 hover:bg-green-50"
@@ -339,13 +352,14 @@ export default function DeliveryGuysPage() {
         }
       />
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <StatusTabs
           value={statusTab}
           onChange={setStatusTab}
           activeCount={activePartners.length}
           inactiveCount={inactivePartners.length}
         />
+        <ClearFiltersButton active={filtersActive} onClear={clearFilters} />
       </div>
 
       <DataTable
@@ -353,6 +367,7 @@ export default function DeliveryGuysPage() {
         data={filteredPartners}
         loading={loading}
         rowKey={(row) => row.id}
+        onRowClick={setViewing}
         emptyMessage={
           statusTab === "active"
             ? t("deliveryGuys.emptyActive")

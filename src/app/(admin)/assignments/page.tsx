@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { Button } from "@/components/ui/Button";
+import { ClearFiltersButton } from "@/components/ui/ClearFiltersButton";
 import { Column, DataTable } from "@/components/ui/DataTable";
 import { DateInput } from "@/components/ui/DateInput";
 import {
@@ -29,14 +30,16 @@ import { useT } from "@/lib/i18n";
 
 type AssignLine = { productId: string; quantity: string };
 
+function todayDateString() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
 export default function AssignmentsPage() {
   const toast = useToast();
   const t = useT();
   const { settings } = useBusinessSettings();
-  const [date, setDate] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  });
+  const [date, setDate] = useState(todayDateString);
   const [deliveryGuyId, setDeliveryGuyId] = useState("");
   const [summary, setSummary] = useState<AllocationSummary[]>([]);
   const [deliveryGuys, setDeliveryGuys] = useState<DeliveryGuy[]>([]);
@@ -48,6 +51,14 @@ export default function AssignmentsPage() {
     { productId: "", quantity: "" },
   ]);
   const [saving, setSaving] = useState(false);
+
+  const filtersActive =
+    deliveryGuyId !== "" || date !== todayDateString();
+
+  function clearFilters() {
+    setDate(todayDateString());
+    setDeliveryGuyId("");
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -213,7 +224,7 @@ export default function AssignmentsPage() {
         }
       />
 
-      <div className="mb-6 grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm md:grid-cols-2">
+      <div className="mb-6 grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto]">
         <DateInput
           label={t("assignments.date")}
           value={date}
@@ -231,6 +242,9 @@ export default function AssignmentsPage() {
             </option>
           ))}
         </Select>
+        <div className="flex items-end">
+          <ClearFiltersButton active={filtersActive} onClear={clearFilters} />
+        </div>
       </div>
 
       <h2 className="mb-3 text-lg font-semibold text-black">

@@ -11,6 +11,7 @@ import { SaleCommentsModal } from "@/components/SaleCommentsModal";
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { ClearFiltersButton } from "@/components/ui/ClearFiltersButton";
 import { Column, DataTable } from "@/components/ui/DataTable";
 import { DateInput } from "@/components/ui/DateInput";
 import {
@@ -62,6 +63,19 @@ export default function SalesPage() {
   );
   const [billSaleId, setBillSaleId] = useState<number | null>(null);
   const [commentsSaleId, setCommentsSaleId] = useState<number | null>(null);
+
+  const filtersActive =
+    Boolean(dateFrom) ||
+    Boolean(dateTo) ||
+    Boolean(deliveryGuyId) ||
+    todayOnly;
+
+  function clearFilters() {
+    setDateFrom("");
+    setDateTo("");
+    setDeliveryGuyId("");
+    setTodayOnly(false);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -302,13 +316,14 @@ export default function SalesPage() {
             </option>
           ))}
         </Select>
-        <div className="flex items-end">
+        <div className="flex items-end justify-between gap-3">
           <Checkbox
             label={t("sales.todayOnly")}
             checked={todayOnly}
             onChange={setTodayOnly}
             description={t("sales.todayOnlyDescription")}
           />
+          <ClearFiltersButton active={filtersActive} onClear={clearFilters} />
         </div>
       </div>
 

@@ -24,6 +24,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { ClearFiltersButton } from "@/components/ui/ClearFiltersButton";
 import { DateInput } from "@/components/ui/DateInput";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -76,6 +77,16 @@ export default function DashboardPage() {
   const [salesByShop, setSalesByShop] = useState<
     Array<{ name: string; total: string }>
   >([]);
+
+  const defaultRange = defaultDateRange();
+  const filtersActive =
+    dateFrom !== defaultRange.dateFrom || dateTo !== defaultRange.dateTo;
+
+  function clearFilters() {
+    const range = defaultDateRange();
+    setDateFrom(range.dateFrom);
+    setDateTo(range.dateTo);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -197,7 +208,7 @@ export default function DashboardPage() {
         description={t("dashboard.description", { period: periodLabel })}
       />
 
-      <div className="grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm md:grid-cols-2">
+      <div className="grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto]">
         <DateInput
           label={t("dashboard.fromDate")}
           value={dateFrom}
@@ -208,6 +219,9 @@ export default function DashboardPage() {
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
         />
+        <div className="flex items-end">
+          <ClearFiltersButton active={filtersActive} onClear={clearFilters} />
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

@@ -11,6 +11,7 @@ import {
 
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { Button } from "@/components/ui/Button";
+import { ClearFiltersButton } from "@/components/ui/ClearFiltersButton";
 import { Column, DataTable } from "@/components/ui/DataTable";
 import {
   DownloadPdfButton,
@@ -76,6 +77,13 @@ export default function ShopsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [statusTab, setStatusTab] = useState<"active" | "inactive">("active");
   const [routeFilter, setRouteFilter] = useState("");
+
+  const filtersActive = statusTab !== "active" || routeFilter !== "";
+
+  function clearFilters() {
+    setStatusTab("active");
+    setRouteFilter("");
+  }
 
   const loadShops = useCallback(async () => {
     setLoading(true);
@@ -334,19 +342,22 @@ export default function ShopsPage() {
           activeCount={activeShops.length}
           inactiveCount={inactiveShops.length}
         />
-        <Select
-          label={t("shops.filterByRoute")}
-          value={routeFilter}
-          onChange={(e) => setRouteFilter(e.target.value)}
-          className="lg:w-56"
-        >
-          <option value="">{t("shops.allRoutes")}</option>
-          {routeOptions.map((route) => (
-            <option key={route} value={route}>
-              {route}
-            </option>
-          ))}
-        </Select>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <Select
+            label={t("shops.filterByRoute")}
+            value={routeFilter}
+            onChange={(e) => setRouteFilter(e.target.value)}
+            className="lg:w-56"
+          >
+            <option value="">{t("shops.allRoutes")}</option>
+            {routeOptions.map((route) => (
+              <option key={route} value={route}>
+                {route}
+              </option>
+            ))}
+          </Select>
+          <ClearFiltersButton active={filtersActive} onClear={clearFilters} />
+        </div>
       </div>
       <DataTable
         columns={shopColumns}

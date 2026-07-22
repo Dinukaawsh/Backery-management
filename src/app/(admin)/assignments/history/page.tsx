@@ -5,6 +5,7 @@ import { HiOutlineTrash } from "react-icons/hi2";
 
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { ClearFiltersButton } from "@/components/ui/ClearFiltersButton";
 import { Column, DataTable } from "@/components/ui/DataTable";
 import { DateInput } from "@/components/ui/DateInput";
 import {
@@ -38,6 +39,15 @@ export default function AssignmentHistoryPage() {
     null,
   );
   const [deleting, setDeleting] = useState(false);
+
+  const filtersActive =
+    Boolean(dateFrom) || Boolean(dateTo) || Boolean(deliveryGuyId);
+
+  function clearFilters() {
+    setDateFrom("");
+    setDateTo("");
+    setDeliveryGuyId("");
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -202,7 +212,7 @@ export default function AssignmentHistoryPage() {
         }
       />
 
-      <div className="mb-6 grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-6 grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
         <DateInput
           label={t("assignments.fromDate")}
           value={dateFrom}
@@ -225,6 +235,9 @@ export default function AssignmentHistoryPage() {
             </option>
           ))}
         </Select>
+        <div className="flex items-end">
+          <ClearFiltersButton active={filtersActive} onClear={clearFilters} />
+        </div>
       </div>
 
       <DataTable

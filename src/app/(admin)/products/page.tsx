@@ -9,7 +9,9 @@ import {
 } from "react-icons/hi2";
 
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
+import { ProductViewModal } from "@/components/ProductViewModal";
 import { Button } from "@/components/ui/Button";
+import { ClearFiltersButton } from "@/components/ui/ClearFiltersButton";
 import {
   DownloadPdfButton,
   PageHeaderActions,
@@ -71,6 +73,18 @@ export default function ProductsPage() {
   const [statusTab, setStatusTab] = useState<"active" | "inactive">("active");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [sortBy, setSortBy] = useState("name-asc");
+  const [viewing, setViewing] = useState<Product | null>(null);
+
+  const filtersActive =
+    statusTab !== "active" ||
+    categoryFilter !== "" ||
+    sortBy !== "name-asc";
+
+  function clearFilters() {
+    setStatusTab("active");
+    setCategoryFilter("");
+    setSortBy("name-asc");
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -299,7 +313,10 @@ export default function ProductsPage() {
       key: "actions",
       header: t("products.colActions"),
       render: (product) => (
-        <div className="flex flex-wrap gap-1.5">
+        <div
+          className="flex flex-wrap gap-1.5"
+          onClick={(event) => event.stopPropagation()}
+        >
           <button
             type="button"
             className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-amber-700 hover:bg-amber-50"
@@ -405,29 +422,32 @@ export default function ProductsPage() {
           activeCount={activeProducts.length}
           inactiveCount={inactiveProducts.length}
         />
-        <div className="grid gap-3 sm:grid-cols-2 lg:w-[28rem]">
-          <Select
-            label={t("common.category")}
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            <option value="">{t("products.allCategories")}</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.name}>
-                {category.name}
-              </option>
-            ))}
-          </Select>
-          <Select
-            label={t("products.sortBy")}
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="name-asc">{t("products.sortNameAsc")}</option>
-            <option value="price-asc">{t("products.sortPriceAsc")}</option>
-            <option value="price-desc">{t("products.sortPriceDesc")}</option>
-            <option value="stock-desc">{t("products.sortStockDesc")}</option>
-          </Select>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="grid gap-3 sm:grid-cols-2 lg:w-[28rem]">
+            <Select
+              label={t("common.category")}
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="">{t("products.allCategories")}</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label={t("products.sortBy")}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="name-asc">{t("products.sortNameAsc")}</option>
+              <option value="price-asc">{t("products.sortPriceAsc")}</option>
+              <option value="price-desc">{t("products.sortPriceDesc")}</option>
+              <option value="stock-desc">{t("products.sortStockDesc")}</option>
+            </Select>
+          </div>
+          <ClearFiltersButton active={filtersActive} onClear={clearFilters} />
         </div>
       </div>
 
@@ -436,6 +456,7 @@ export default function ProductsPage() {
         data={filteredProducts}
         loading={loading}
         rowKey={(row) => row.id}
+        onRowClick={setViewing}
         emptyMessage={
           statusTab === "active"
             ? t("products.emptyActive")
@@ -454,6 +475,12 @@ export default function ProductsPage() {
             .join(" ")
         }
         searchPlaceholder={t("products.searchPlaceholder")}
+      />
+
+      <ProductViewModal
+        product={viewing}
+        onClose={() => setViewing(null)}
+        onEdit={openEdit}
       />
 
       <Modal

@@ -58,6 +58,7 @@ type DataTableProps<T> = {
   rowKey: (row: T) => string | number;
   getSearchText?: (row: T) => string;
   searchPlaceholder?: string;
+  onRowClick?: (row: T) => void;
 };
 
 export function DataTable<T>({
@@ -69,6 +70,7 @@ export function DataTable<T>({
   rowKey,
   getSearchText,
   searchPlaceholder,
+  onRowClick,
 }: DataTableProps<T>) {
   const t = useT();
   const [page, setPage] = useState(1);
@@ -146,7 +148,10 @@ export function DataTable<T>({
               pageData.map((row) => (
                 <tr
                   key={rowKey(row)}
-                  className="border-b border-amber-50 hover:bg-amber-50/40"
+                  className={`border-b border-amber-50 hover:bg-amber-50/40 ${
+                    onRowClick ? "cursor-pointer" : ""
+                  }`}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
                 >
                   {columns.map((column) => (
                     <td

@@ -42,6 +42,7 @@ export type ShopDropSale = {
   id: number;
   saleDate: string;
   totalAmount: string;
+  returnsAmount?: string;
   billPrinted: boolean;
   items: Array<{
     productId: number;
@@ -61,6 +62,7 @@ export type ShopDropSummary = {
   dropDate: string;
   totalQuantity: number;
   totalAmount: string;
+  returnsAmount?: string;
   saleCount: number;
   items: Array<{
     productId: number;
@@ -98,6 +100,8 @@ export type Sale = {
   previousBalance?: string;
   paidAmount?: string;
   remainingAfter?: string;
+  returnsAmount?: string;
+  netToday?: string;
   amountDue?: string;
   notes: string | null;
   billPrinted: boolean;
@@ -108,6 +112,13 @@ export type Sale = {
   shopAddress?: string;
   shopPhone?: string | null;
   items?: Array<{
+    id: number;
+    productId: number;
+    quantity: number;
+    unitPrice: string;
+    productName: string;
+  }>;
+  returns?: Array<{
     id: number;
     productId: number;
     quantity: number;
@@ -309,6 +320,9 @@ export async function getDashboard(params?: {
     stats: {
       periodSalesCount: number;
       periodSalesTotal: string;
+      periodReturnsTotal: string;
+      periodEstimatedLoss: string;
+      periodNetSales: string;
       totalProducts: number;
       totalDeliveryGuys: number;
       totalShops: number;

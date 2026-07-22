@@ -122,8 +122,66 @@ export default function BillPage({
         </tbody>
       </table>
 
-      <div className="mt-6 flex justify-end text-lg font-bold">
-        {t("bill.totalRsLabel", { amount: formatCurrency(sale.totalAmount) })}
+      {Number(sale.returnsAmount ?? 0) > 0 &&
+      (sale.returns?.length ?? 0) > 0 ? (
+        <div className="mt-6 rounded-xl border border-red-100 bg-red-50/40 p-4">
+          <p className="font-semibold text-red-800">
+            {t("bill.returnsCollected")}
+          </p>
+          <ul className="mt-2 space-y-2 text-sm">
+            {sale.returns?.map((item) => (
+              <li key={item.id} className="flex justify-between gap-3">
+                <span>
+                  {item.productName} ·{" "}
+                  {t("bill.itemCalculation", {
+                    price: formatCurrency(item.unitPrice),
+                    qty: item.quantity,
+                    total: formatCurrency(
+                      Number(item.unitPrice) * item.quantity,
+                    ),
+                  })}
+                </span>
+                <span className="font-medium text-red-800">
+                  −
+                  {formatCurrency(Number(item.unitPrice) * item.quantity)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex justify-between border-t border-red-100 pt-2 font-semibold text-red-800">
+            <span>{t("bill.estimatedLoss")}</span>
+            <span>−{formatCurrency(sale.returnsAmount ?? 0)}</span>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-6 space-y-1 text-sm">
+        <div className="flex justify-between">
+          <span>{t("bill.todaysDrop")}</span>
+          <span>{formatCurrency(sale.totalAmount)}</span>
+        </div>
+        {Number(sale.returnsAmount ?? 0) > 0 ? (
+          <>
+            <div className="flex justify-between text-red-700">
+              <span>{t("bill.returnsCredit")}</span>
+              <span>−{formatCurrency(sale.returnsAmount ?? 0)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>{t("bill.netToday")}</span>
+              <span>
+                {formatCurrency(
+                  sale.netToday ??
+                    Number(sale.totalAmount) - Number(sale.returnsAmount ?? 0),
+                )}
+              </span>
+            </div>
+          </>
+        ) : null}
+        <div className="flex justify-end text-lg font-bold">
+          {t("bill.totalRsLabel", {
+            amount: formatCurrency(sale.amountDue ?? sale.totalAmount),
+          })}
+        </div>
       </div>
 
       {sale.notes ? (

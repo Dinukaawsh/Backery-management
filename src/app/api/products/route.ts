@@ -17,8 +17,11 @@ export async function GET(request: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
+    const { searchParams } = new URL(request.url);
+    const includeInactive = searchParams.get("includeInactive") === "true";
+
     const conditions =
-      auth.session.role === "delivery"
+      auth.session!.role === "delivery" && !includeInactive
         ? eq(products.isActive, true)
         : undefined;
 

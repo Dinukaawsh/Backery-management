@@ -2,10 +2,11 @@ import { eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import { products, saleItems, sales, shops, users } from "@/db/schema";
+import { sales, shops } from "@/db/schema";
 import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
 import { formatMoney, parseMoney } from "@/lib/money";
+import { getSaleWithDetails, saleAmountDue } from "@/lib/sales";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -13,61 +14,6 @@ function parseId(id: string) {
   const saleId = Number(id);
   if (!Number.isInteger(saleId) || saleId <= 0) return null;
   return saleId;
-}
-
-async function getSaleWithDetails(saleId: number) {
-  const [sale] = await getDb()
-    .select({
-      id: sales.id,
-      deliveryGuyId: sales.deliveryGuyId,
-      shopId: sales.shopId,
-      saleDate: sales.saleDate,
-      totalAmount: sales.totalAmount,
-      previousBalance: sales.previousBalance,
-      paidAmount: sales.paidAmount,
-      remainingAfter: sales.remainingAfter,
-      notes: sales.notes,
-      billPrinted: sales.billPrinted,
-      createdAt: sales.createdAt,
-      shopName: shops.name,
-      shopOwner: shops.ownerName,
-      shopAddress: shops.address,
-      shopPhone: shops.phone,
-      deliveryGuyName: users.name,
-    })
-    .from(sales)
-    .innerJoin(shops, eq(sales.shopId, shops.id))
-    .innerJoin(users, eq(sales.deliveryGuyId, users.id))
-    .where(eq(sales.id, saleId))
-    .limit(1);
-
-  if (!sale) return null;
-
-  const items = await getDb()
-    .select({
-      id: saleItems.id,
-      productId: saleItems.productId,
-      quantity: saleItems.quantity,
-      unitPrice: saleItems.unitPrice,
-      productName: products.name,
-      productImageUrl: products.imageUrl,
-    })
-    .from(saleItems)
-    .innerJoin(products, eq(saleItems.productId, products.id))
-    .where(eq(saleItems.saleId, saleId));
-
-  const previousBalance = parseMoney(sale.previousBalance);
-  const totalAmount = parseMoney(sale.totalAmount);
-  const paidAmount = parseMoney(sale.paidAmount);
-
-  return {
-    ...sale,
-    items,
-    amountDue: formatMoney(previousBalance + totalAmount),
-    paidAmount: formatMoney(paidAmount),
-    previousBalance: formatMoney(previousBalance),
-    remainingAfter: formatMoney(parseMoney(sale.remainingAfter)),
-  };
 }
 
 export async function OPTIONS() {
@@ -142,7 +88,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (body.paidAmount !== undefined && body.paidAmount !== null) {
       const previousBalance = parseMoney(existing.previousBalance);
       const todayTotal = parseMoney(existing.totalAmount);
-      const amountDue = parseMoney(previousBalance + todayTotal);
+      const returnsAmount = parseMoney(existing.returnsAmount ?? "0");
+      const amountDue = saleAmountDue(
+        previousBalance,
+        todayTotal,
+        returnsAmount,
+      );
       let paidAmount = parseMoney(body.paidAmount);
 
       if (paidAmount < 0) {

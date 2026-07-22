@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { IconType } from "react-icons";
 import {
+  HiOutlineArrowPath,
   HiOutlineBuildingStorefront,
   HiOutlineChartBarSquare,
   HiOutlineCube,
   HiOutlineCurrencyDollar,
+  HiOutlineExclamationTriangle,
+  HiOutlineBanknotes,
   HiOutlineTruck,
 } from "react-icons/hi2";
 import {
@@ -56,6 +59,9 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({
     periodSalesCount: 0,
     periodSalesTotal: "0",
+    periodReturnsTotal: "0",
+    periodEstimatedLoss: "0",
+    periodNetSales: "0",
     totalProducts: 0,
     totalDeliveryGuys: 0,
     totalShops: 0,
@@ -145,6 +151,24 @@ export default function DashboardPage() {
       value: formatCurrency(stats.periodSalesTotal),
       accent: "bg-orange-500",
       icon: HiOutlineCurrencyDollar,
+    },
+    {
+      label: t("dashboard.statReturns"),
+      value: formatCurrency(stats.periodReturnsTotal ?? "0"),
+      accent: "bg-rose-500",
+      icon: HiOutlineArrowPath,
+    },
+    {
+      label: t("dashboard.statEstimatedLoss"),
+      value: formatCurrency(stats.periodEstimatedLoss ?? "0"),
+      accent: "bg-red-600",
+      icon: HiOutlineExclamationTriangle,
+    },
+    {
+      label: t("dashboard.statNetSales"),
+      value: formatCurrency(stats.periodNetSales ?? "0"),
+      accent: "bg-emerald-600",
+      icon: HiOutlineBanknotes,
     },
     {
       label: t("dashboard.statProducts"),

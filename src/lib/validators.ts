@@ -32,6 +32,7 @@ export type SaleInput = {
   saleDate: string;
   notes?: string | null;
   items: SaleItemInput[];
+  returns?: SaleItemInput[];
 };
 
 export function validateProductInput(body: unknown): ProductInput | null {
@@ -128,10 +129,27 @@ export function validateSaleInput(body: unknown): SaleInput | null {
     items.push({ productId, quantity });
   }
 
+  const returns: SaleItemInput[] = [];
+  if (data.returns !== undefined && data.returns !== null) {
+    if (!Array.isArray(data.returns)) return null;
+    for (const item of data.returns) {
+      if (!item || typeof item !== "object") return null;
+      const row = item as Record<string, unknown>;
+      const productId = Number(row.productId);
+      const quantity = Number(row.quantity);
+
+      if (!Number.isInteger(productId) || productId <= 0) return null;
+      if (!Number.isInteger(quantity) || quantity <= 0) return null;
+
+      returns.push({ productId, quantity });
+    }
+  }
+
   return {
     shopId,
     saleDate: data.saleDate.trim(),
     notes: typeof data.notes === "string" ? data.notes.trim() : null,
     items,
+    returns,
   };
 }

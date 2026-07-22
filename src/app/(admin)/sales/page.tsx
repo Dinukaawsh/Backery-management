@@ -220,6 +220,19 @@ export default function SalesPage() {
       render: (g) => formatCurrency(g.totalAmount),
     },
     {
+      key: "loss",
+      header: t("sales.colEstimatedLoss"),
+      render: (g) => {
+        const loss = Number(g.returnsAmount ?? 0);
+        if (loss <= 0) return "—";
+        return (
+          <span className="font-medium text-red-700">
+            {formatCurrency(loss)}
+          </span>
+        );
+      },
+    },
+    {
       key: "sales",
       header: t("sales.colSales"),
       render: (g) => t("sales.saleCount", { count: g.saleCount }),
@@ -351,6 +364,12 @@ export default function SalesPage() {
                 <span className="font-medium">{t("sales.colTotalRs")}: </span>
                 {formatCurrency(selectedGroup.totalAmount)}
               </p>
+              {Number(selectedGroup.returnsAmount ?? 0) > 0 ? (
+                <p className="mt-1 text-red-700">
+                  <span className="font-medium">{t("sales.colEstimatedLoss")}: </span>
+                  {formatCurrency(selectedGroup.returnsAmount ?? 0)}
+                </p>
+              ) : null}
             </div>
             <ul className="space-y-2">
               {selectedGroup.sales.map((sale) => (
@@ -370,6 +389,12 @@ export default function SalesPage() {
                     <p className="mt-1 text-sm font-semibold text-stone-800">
                       {formatCurrency(sale.totalAmount)}
                     </p>
+                    {Number(sale.returnsAmount ?? 0) > 0 ? (
+                      <p className="mt-0.5 text-sm font-medium text-red-700">
+                        {t("bill.estimatedLoss")}:{" "}
+                        {formatCurrency(sale.returnsAmount ?? 0)}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <button

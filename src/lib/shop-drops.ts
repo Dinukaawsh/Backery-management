@@ -15,6 +15,7 @@ export type ShopDropSale = {
   id: number;
   saleDate: string;
   totalAmount: string;
+  returnsAmount: string;
   billPrinted: boolean;
   items: ShopDropItem[];
 };
@@ -29,6 +30,7 @@ export type ShopDropSummary = {
   dropDate: string;
   totalQuantity: number;
   totalAmount: string;
+  returnsAmount: string;
   saleCount: number;
   items: ShopDropItem[];
   sales: ShopDropSale[];
@@ -90,6 +92,7 @@ export async function getShopDrops(params: {
       deliveryGuyName: users.name,
       saleDate: sales.saleDate,
       totalAmount: sales.totalAmount,
+      returnsAmount: sales.returnsAmount,
       billPrinted: sales.billPrinted,
     })
     .from(sales)
@@ -138,6 +141,7 @@ export async function getShopDrops(params: {
       id: sale.saleId,
       saleDate: new Date(sale.saleDate).toISOString(),
       totalAmount: sale.totalAmount,
+      returnsAmount: sale.returnsAmount ?? "0.00",
       billPrinted: sale.billPrinted,
       items: [...saleItemsList],
     };
@@ -154,6 +158,7 @@ export async function getShopDrops(params: {
         dropDate,
         totalQuantity: saleQty,
         totalAmount: sale.totalAmount,
+        returnsAmount: sale.returnsAmount ?? "0.00",
         saleCount: 1,
         items: [...saleItemsList],
         sales: [saleEntry],
@@ -164,6 +169,9 @@ export async function getShopDrops(params: {
     existing.totalQuantity += saleQty;
     existing.totalAmount = String(
       Number(existing.totalAmount) + Number(sale.totalAmount),
+    );
+    existing.returnsAmount = String(
+      Number(existing.returnsAmount) + Number(sale.returnsAmount ?? 0),
     );
     existing.saleCount += 1;
     existing.sales.push(saleEntry);

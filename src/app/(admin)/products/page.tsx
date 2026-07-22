@@ -44,7 +44,7 @@ const emptyForm = {
   description: "",
   price: "",
   category: "",
-  stockAvailable: "0",
+  stockAvailable: "",
   imageUrl: null as string | null,
 };
 
@@ -124,7 +124,7 @@ export default function ProductsPage() {
         description: form.description,
         price: form.price,
         category: form.category.trim(),
-        stockAvailable: Number(form.stockAvailable),
+        stockAvailable: Number(form.stockAvailable) || 0,
         imageUrl: form.imageUrl,
       };
       if (editing) {
@@ -511,9 +511,9 @@ export default function ProductsPage() {
           />
           <Input
             label={t("products.formStockAvailable")}
-            required
             type="number"
             min="0"
+            placeholder="0"
             value={form.stockAvailable}
             onChange={(e) =>
               setForm({ ...form, stockAvailable: e.target.value })

@@ -57,7 +57,13 @@ export function BillModal({ saleId, onClose }: BillModalProps) {
 
   const previousBalance = Number(sale?.previousBalance ?? 0);
   const todayTotal = Number(sale?.totalAmount ?? 0);
-  const amountDue = Number(sale?.amountDue ?? previousBalance + todayTotal);
+  const returnsAmount = Number(sale?.returnsAmount ?? 0);
+  const netToday = Number(
+    sale?.netToday ?? todayTotal - returnsAmount,
+  );
+  const amountDue = Number(
+    sale?.amountDue ?? previousBalance + todayTotal - returnsAmount,
+  );
   const remainingAfter = Number(sale?.remainingAfter ?? amountDue);
 
   const paidPreview = useMemo(() => {
@@ -206,11 +212,67 @@ export function BillModal({ saleId, onClose }: BillModalProps) {
               </tbody>
             </table>
 
+            {returnsAmount > 0 && (sale.returns?.length ?? 0) > 0 ? (
+              <div className="mt-5 rounded-xl border border-red-100 bg-red-50/40 p-3">
+                <p className="text-sm font-semibold text-red-800">
+                  {t("bill.returnsCollected")}
+                </p>
+                <p className="mt-0.5 text-xs text-red-700/80">
+                  {new Date(sale.saleDate).toLocaleDateString()}
+                </p>
+                <ul className="mt-2 space-y-2 text-sm">
+                  {sale.returns?.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-start justify-between gap-3 border-b border-red-100/80 pb-2 last:border-0 last:pb-0"
+                    >
+                      <div>
+                        <p className="font-medium text-stone-900">
+                          {item.productName}
+                        </p>
+                        <p className="text-xs text-stone-600">
+                          {t("bill.itemCalculation", {
+                            price: formatCurrency(item.unitPrice),
+                            qty: item.quantity,
+                            total: formatCurrency(
+                              Number(item.unitPrice) * item.quantity,
+                            ),
+                          })}
+                        </p>
+                      </div>
+                      <p className="shrink-0 font-medium text-red-800">
+                        −
+                        {formatCurrency(
+                          Number(item.unitPrice) * item.quantity,
+                        )}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-2 flex justify-between border-t border-red-100 pt-2 text-sm font-semibold text-red-800">
+                  <span>{t("bill.estimatedLoss")}</span>
+                  <span>−{formatCurrency(returnsAmount)}</span>
+                </div>
+              </div>
+            ) : null}
+
             <div className="mt-4 space-y-1 text-sm">
               <div className="flex justify-between">
                 <span>{t("bill.todaysDrop")}</span>
                 <span>{formatCurrency(todayTotal)}</span>
               </div>
+              {returnsAmount > 0 ? (
+                <>
+                  <div className="flex justify-between text-red-700">
+                    <span>{t("bill.returnsCredit")}</span>
+                    <span>−{formatCurrency(returnsAmount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>{t("bill.netToday")}</span>
+                    <span>{formatCurrency(netToday)}</span>
+                  </div>
+                </>
+              ) : null}
               {previousBalance > 0 ? (
                 <div className="flex justify-between text-amber-800">
                   <span>{t("bill.previousUnpaidBalance")}</span>

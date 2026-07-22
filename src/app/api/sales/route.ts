@@ -2,7 +2,14 @@ import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import { products, saleItems, sales, shops, users } from "@/db/schema";
+import {
+  products,
+  saleItems,
+  saleReturns,
+  sales,
+  shops,
+  users,
+} from "@/db/schema";
 import { getRemainingStock } from "@/lib/allocations";
 import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
@@ -14,66 +21,15 @@ import {
 } from "@/lib/dates";
 import { formatMoney, parseMoney } from "@/lib/money";
 import { notifyAdmins } from "@/lib/notifications";
+import {
+  getReturnsBySaleIds,
+  getSaleWithDetails,
+  saleAmountDue,
+} from "@/lib/sales";
 import { validateSaleInput } from "@/lib/validators";
 
 function startOfToday() {
   return parseDateInput(localDateString())!;
-}
-
-async function getSaleWithDetails(saleId: number) {
-  const [sale] = await getDb()
-    .select({
-      id: sales.id,
-      deliveryGuyId: sales.deliveryGuyId,
-      shopId: sales.shopId,
-      saleDate: sales.saleDate,
-      totalAmount: sales.totalAmount,
-      previousBalance: sales.previousBalance,
-      paidAmount: sales.paidAmount,
-      remainingAfter: sales.remainingAfter,
-      notes: sales.notes,
-      billPrinted: sales.billPrinted,
-      createdAt: sales.createdAt,
-      shopName: shops.name,
-      shopOwner: shops.ownerName,
-      shopAddress: shops.address,
-      shopPhone: shops.phone,
-      deliveryGuyName: users.name,
-    })
-    .from(sales)
-    .innerJoin(shops, eq(sales.shopId, shops.id))
-    .innerJoin(users, eq(sales.deliveryGuyId, users.id))
-    .where(eq(sales.id, saleId))
-    .limit(1);
-
-  if (!sale) return null;
-
-  const items = await getDb()
-    .select({
-      id: saleItems.id,
-      productId: saleItems.productId,
-      quantity: saleItems.quantity,
-      unitPrice: saleItems.unitPrice,
-      productName: products.name,
-      productImageUrl: products.imageUrl,
-    })
-    .from(saleItems)
-    .innerJoin(products, eq(saleItems.productId, products.id))
-    .where(eq(saleItems.saleId, saleId));
-
-  const previousBalance = parseMoney(sale.previousBalance);
-  const totalAmount = parseMoney(sale.totalAmount);
-  const paidAmount = parseMoney(sale.paidAmount);
-  const amountDue = previousBalance + totalAmount;
-
-  return {
-    ...sale,
-    items,
-    amountDue: formatMoney(amountDue),
-    paidAmount: formatMoney(paidAmount),
-    previousBalance: formatMoney(previousBalance),
-    remainingAfter: formatMoney(parseMoney(sale.remainingAfter)),
-  };
 }
 
 export async function OPTIONS() {
@@ -134,6 +90,7 @@ export async function GET(request: NextRequest) {
         previousBalance: sales.previousBalance,
         paidAmount: sales.paidAmount,
         remainingAfter: sales.remainingAfter,
+        returnsAmount: sales.returnsAmount,
         notes: sales.notes,
         billPrinted: sales.billPrinted,
         createdAt: sales.createdAt,
@@ -167,6 +124,8 @@ export async function GET(request: NextRequest) {
             .innerJoin(products, eq(saleItems.productId, products.id))
             .where(inArray(saleItems.saleId, saleIds));
 
+    const returnRows = await getReturnsBySaleIds(saleIds);
+
     const itemsBySale = new Map<number, typeof itemRows>();
     for (const item of itemRows) {
       const list = itemsBySale.get(item.saleId) ?? [];
@@ -174,16 +133,33 @@ export async function GET(request: NextRequest) {
       itemsBySale.set(item.saleId, list);
     }
 
+    const returnsBySale = new Map<number, typeof returnRows>();
+    for (const item of returnRows) {
+      const list = returnsBySale.get(item.saleId) ?? [];
+      list.push(item);
+      returnsBySale.set(item.saleId, list);
+    }
+
     return corsResponse({
-      sales: rows.map((row) => ({
-        ...row,
-        items: (itemsBySale.get(row.id) ?? []).map(
-          ({ saleId: _saleId, ...item }) => item,
-        ),
-        amountDue: formatMoney(
-          parseMoney(row.previousBalance) + parseMoney(row.totalAmount),
-        ),
-      })),
+      sales: rows.map((row) => {
+        const previousBalance = parseMoney(row.previousBalance);
+        const totalAmount = parseMoney(row.totalAmount);
+        const returnsAmount = parseMoney(row.returnsAmount);
+        return {
+          ...row,
+          items: (itemsBySale.get(row.id) ?? []).map(
+            ({ saleId: _saleId, ...item }) => item,
+          ),
+          returns: (returnsBySale.get(row.id) ?? []).map(
+            ({ saleId: _saleId, ...item }) => item,
+          ),
+          returnsAmount: formatMoney(returnsAmount),
+          amountDue: formatMoney(
+            saleAmountDue(previousBalance, totalAmount, returnsAmount),
+          ),
+          netToday: formatMoney(totalAmount - returnsAmount),
+        };
+      }),
     });
   } catch (error) {
     console.error("GET /api/sales failed:", error);
@@ -202,7 +178,13 @@ export async function POST(request: NextRequest) {
 
     const db = getDb();
     let totalAmount = 0;
+    let returnsTotal = 0;
     const lineItems: Array<{
+      productId: number;
+      quantity: number;
+      unitPrice: string;
+    }> = [];
+    const returnItems: Array<{
       productId: number;
       quantity: number;
       unitPrice: string;
@@ -284,9 +266,33 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    for (const item of input.returns ?? []) {
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, item.productId))
+        .limit(1);
+
+      if (!product) {
+        return corsResponse(
+          { error: `Return product ${item.productId} not found` },
+          400,
+        );
+      }
+
+      const unitPrice = product.price;
+      returnsTotal += Number(unitPrice) * item.quantity;
+      returnItems.push({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice,
+      });
+    }
+
     const previousBalance = parseMoney(shop.outstandingBalance);
     const todayTotal = parseMoney(totalAmount);
-    const amountDue = parseMoney(previousBalance + todayTotal);
+    const returnsAmount = parseMoney(returnsTotal);
+    const amountDue = saleAmountDue(previousBalance, todayTotal, returnsAmount);
 
     let paidAmount = 0;
     if (body.paidAmount !== undefined && body.paidAmount !== null) {
@@ -311,12 +317,22 @@ export async function POST(request: NextRequest) {
         previousBalance: formatMoney(previousBalance),
         paidAmount: formatMoney(paidAmount),
         remainingAfter: formatMoney(remainingAfter),
+        returnsAmount: formatMoney(returnsAmount),
         notes: input.notes,
       })
       .returning();
 
     for (const item of lineItems) {
       await db.insert(saleItems).values({
+        saleId: sale.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      });
+    }
+
+    for (const item of returnItems) {
+      await db.insert(saleReturns).values({
         saleId: sale.id,
         productId: item.productId,
         quantity: item.quantity,
@@ -335,10 +351,14 @@ export async function POST(request: NextRequest) {
       const itemSummary = (fullSale?.items ?? [])
         .map((item) => `${item.productName} × ${item.quantity}`)
         .join(", ");
+      const lossNote =
+        returnsAmount > 0
+          ? ` · returns/loss ${formatMoney(returnsAmount)}`
+          : "";
       await notifyAdmins({
         type: "sale",
         title: "New sale recorded",
-        body: `${fullSale?.deliveryGuyName ?? "Partner"} → ${fullSale?.shopName ?? "Shop"} · ${formatMoney(todayTotal)}${itemSummary ? ` · ${itemSummary}` : ""}`,
+        body: `${fullSale?.deliveryGuyName ?? "Partner"} → ${fullSale?.shopName ?? "Shop"} · ${formatMoney(todayTotal)}${lossNote}${itemSummary ? ` · ${itemSummary}` : ""}`,
         href: "/sales",
       });
     } catch (notifyError) {

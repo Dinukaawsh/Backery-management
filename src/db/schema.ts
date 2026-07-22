@@ -79,12 +79,27 @@ export const sales = pgTable("sales", {
   remainingAfter: numeric("remaining_after", { precision: 10, scale: 2 })
     .notNull()
     .default("0.00"),
+  returnsAmount: numeric("returns_amount", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0.00"),
   notes: text("notes"),
   billPrinted: boolean("bill_printed").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const saleItems = pgTable("sale_items", {
+  id: serial("id").primaryKey(),
+  saleId: integer("sale_id")
+    .notNull()
+    .references(() => sales.id, { onDelete: "cascade" }),
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
+});
+
+export const saleReturns = pgTable("sale_returns", {
   id: serial("id").primaryKey(),
   saleId: integer("sale_id")
     .notNull()

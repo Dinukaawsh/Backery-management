@@ -62,9 +62,14 @@ export async function GET(request: NextRequest) {
       .select({
         count: count(),
         total: sql<string>`coalesce(sum(${sales.totalAmount}), 0)`,
+        returnsTotal: sql<string>`coalesce(sum(${sales.returnsAmount}), 0)`,
       })
       .from(sales)
       .where(and(gte(sales.saleDate, start), lte(sales.saleDate, end)));
+
+    const dropTotal = Number(periodStats.total ?? 0);
+    const returnsTotal = Number(periodStats.returnsTotal ?? 0);
+    const netSales = dropTotal - returnsTotal;
 
     const [productStats] = await db.select({ count: count() }).from(products);
     const [deliveryStats] = await db
@@ -128,6 +133,9 @@ export async function GET(request: NextRequest) {
       stats: {
         periodSalesCount: periodStats.count,
         periodSalesTotal: periodStats.total,
+        periodReturnsTotal: String(returnsTotal.toFixed(2)),
+        periodEstimatedLoss: String(returnsTotal.toFixed(2)),
+        periodNetSales: String(netSales.toFixed(2)),
         totalProducts: productStats.count,
         totalDeliveryGuys: deliveryStats.count,
         totalShops: shopStats.count,

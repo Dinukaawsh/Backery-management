@@ -113,7 +113,7 @@ export function validateSaleInput(body: unknown): SaleInput | null {
   const shopId = Number(data.shopId);
   if (!Number.isInteger(shopId) || shopId <= 0) return null;
   if (typeof data.saleDate !== "string" || !data.saleDate.trim()) return null;
-  if (!Array.isArray(data.items) || data.items.length === 0) return null;
+  if (!Array.isArray(data.items)) return null;
 
   const items: SaleItemInput[] = [];
 
@@ -144,6 +144,8 @@ export function validateSaleInput(body: unknown): SaleInput | null {
       returns.push({ productId, quantity });
     }
   }
+
+  if (items.length === 0 && returns.length === 0) return null;
 
   return {
     shopId,

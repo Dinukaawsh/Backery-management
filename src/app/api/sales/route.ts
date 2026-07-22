@@ -26,6 +26,7 @@ import {
   getSaleWithDetails,
   saleAmountDue,
 } from "@/lib/sales";
+import { getShopReturnableQty } from "@/lib/shop-returns";
 import { validateSaleInput } from "@/lib/validators";
 
 function startOfToday() {
@@ -276,6 +277,27 @@ export async function POST(request: NextRequest) {
       if (!product) {
         return corsResponse(
           { error: `Return product ${item.productId} not found` },
+          400,
+        );
+      }
+
+      const returnable = await getShopReturnableQty(
+        input.shopId,
+        item.productId,
+      );
+      if (returnable <= 0) {
+        return corsResponse(
+          {
+            error: `${product.name} was never dropped at this shop, so it cannot be returned.`,
+          },
+          400,
+        );
+      }
+      if (item.quantity > returnable) {
+        return corsResponse(
+          {
+            error: `Cannot return ${item.quantity} × ${product.name}. Only ${returnable} left returnable at this shop.`,
+          },
           400,
         );
       }

@@ -420,6 +420,12 @@ export const en = {
   "assignments.filterByPartner": "Filter by delivery partner",
   "assignments.allPartners": "All delivery partners",
   "assignments.summaryTitle": "Assigned vs sold summary",
+  "assignments.viewTitle": "Assignment details",
+  "assignments.viewDateLabel": "Date: {date}",
+  "assignments.viewProductsHeading": "{count} product(s)",
+  "assignments.productCount": "{count} products",
+  "assignments.viewDetails": "View details",
+  "assignments.searchPartners": "Search partners or products...",
   "assignments.historyTitle": "Assignment history",
   "assignments.emptySummary": "No stock assigned for this date yet.",
   "assignments.emptyHistory": "No individual assignments recorded.",
@@ -451,7 +457,15 @@ export const en = {
     "Assigning for {date}. Stock is taken from bakery inventory.",
   "assignments.selectProduct": "Select product",
   "assignments.productStockOption": "{name} (in bakery: {stock})",
+  "assignments.productAlreadySelected": "Product already assigned",
+  "assignments.productAlreadySelectedSuffix": " (already assigned)",
   "assignments.addAnotherProduct": "+ Add another product",
+  "assignments.duplicateProductsError":
+    "Each product can only be assigned once. Remove the duplicate first.",
+  "assignments.quantityExceedsStock":
+    "Quantity cannot exceed available stock ({stock})",
+  "assignments.quantityExceedsStockNamed":
+    "{name}: quantity cannot exceed available stock ({stock})",
   "assignments.removeTitle": "Remove assignment",
   "assignments.removeMessage":
     "Remove {quantity} × {productName} from {deliveryGuyName}? Unsold stock returns to bakery inventory.",

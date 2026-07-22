@@ -423,6 +423,12 @@ export const si: { [K in keyof EnMessages]: string } = {
   "assignments.filterByPartner": "හවුල්කරු අනුව පෙරහන් කරන්න",
   "assignments.allPartners": "සියලු හවුල්කරුවන්",
   "assignments.summaryTitle": "පවරන ලද vs විකුණු ලද සාරාංශය",
+  "assignments.viewTitle": "පැවරුම් විස්තර",
+  "assignments.viewDateLabel": "දිනය: {date}",
+  "assignments.viewProductsHeading": "නිෂ්පාදන {count}",
+  "assignments.productCount": "නිෂ්පාදන {count}",
+  "assignments.viewDetails": "විස්තර බලන්න",
+  "assignments.searchPartners": "හවුල්කරුවන් හෝ නිෂ්පාදන සොයන්න...",
   "assignments.historyTitle": "පැවරුම් ඉතිහාසය",
   "assignments.emptySummary": "මෙම දිනයට තවම තොග පවරා නැත.",
   "assignments.emptyHistory": "තනි පැවරුම් වාර්තා නැත.",
@@ -454,7 +460,15 @@ export const si: { [K in keyof EnMessages]: string } = {
     "{date} සඳහා පවරමින්. තොගය බේකරි ඉන්වෙන්ටරියෙන් ගනු ලැබේ.",
   "assignments.selectProduct": "නිෂ්පාදනය තෝරන්න",
   "assignments.productStockOption": "{name} (බේකරියේ: {stock})",
+  "assignments.productAlreadySelected": "නිෂ්පාදනය දැනටමත් පවරා ඇත",
+  "assignments.productAlreadySelectedSuffix": " (දැනටමත් පවරා ඇත)",
   "assignments.addAnotherProduct": "+ තවත් නිෂ්පාදනයක්",
+  "assignments.duplicateProductsError":
+    "එකම නිෂ්පාදනය එක් වරක් පමණක් පැවරිය හැක. පළමුව අනුපිටපත ඉවත් කරන්න.",
+  "assignments.quantityExceedsStock":
+    "ප්‍රමාණය තොගය ({stock}) ඉක්මවිය නොහැක",
+  "assignments.quantityExceedsStockNamed":
+    "{name}: ප්‍රමාණය තොගය ({stock}) ඉක්මවිය නොහැක",
   "assignments.removeTitle": "පැවරුම ඉවත් කරන්න",
   "assignments.removeMessage":
     "{deliveryGuyName} වෙතින් {productName} × {quantity} ඉවත් කරන්නද? නොවිකුණු තොගය බේකරියට ආපසු යයි.",

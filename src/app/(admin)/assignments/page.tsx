@@ -1,17 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { HiOutlineEye } from "react-icons/hi2";
 
+import {
+  AssignmentPartnerViewModal,
+  type PartnerAssignmentGroup,
+} from "@/components/AssignmentPartnerViewModal";
 import { useBusinessSettings } from "@/components/BusinessSettingsProvider";
 import { Button } from "@/components/ui/Button";
 import { ClearFiltersButton } from "@/components/ui/ClearFiltersButton";
-import { Column, DataTable } from "@/components/ui/DataTable";
+import { TableSearchBar } from "@/components/ui/DataTable";
 import { DateInput } from "@/components/ui/DateInput";
 import {
   DownloadPdfButton,
   PageHeaderActions,
 } from "@/components/ui/DownloadPdfButton";
 import { Input } from "@/components/ui/Input";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
@@ -35,6 +41,34 @@ function todayDateString() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
+function groupByPartner(summary: AllocationSummary[]): PartnerAssignmentGroup[] {
+  const map = new Map<number, PartnerAssignmentGroup>();
+
+  for (const row of summary) {
+    const existing = map.get(row.deliveryGuyId);
+    if (existing) {
+      existing.items.push(row);
+      existing.totalAllocated += row.allocated;
+      existing.totalSold += row.sold;
+      existing.totalRemaining += row.remaining;
+      continue;
+    }
+
+    map.set(row.deliveryGuyId, {
+      deliveryGuyId: row.deliveryGuyId,
+      deliveryGuyName: row.deliveryGuyName,
+      items: [row],
+      totalAllocated: row.allocated,
+      totalSold: row.sold,
+      totalRemaining: row.remaining,
+    });
+  }
+
+  return Array.from(map.values()).sort((a, b) =>
+    a.deliveryGuyName.localeCompare(b.deliveryGuyName),
+  );
+}
+
 export default function AssignmentsPage() {
   const toast = useToast();
   const t = useT();
@@ -51,6 +85,8 @@ export default function AssignmentsPage() {
     { productId: "", quantity: "" },
   ]);
   const [saving, setSaving] = useState(false);
+  const [viewing, setViewing] = useState<PartnerAssignmentGroup | null>(null);
+  const [partnerSearch, setPartnerSearch] = useState("");
 
   const filtersActive =
     deliveryGuyId !== "" || date !== todayDateString();
@@ -96,6 +132,22 @@ export default function AssignmentsPage() {
     void load();
   }, [load]);
 
+  const partnerGroups = useMemo(() => groupByPartner(summary), [summary]);
+
+  const filteredGroups = useMemo(() => {
+    const query = partnerSearch.trim().toLowerCase();
+    if (!query) return partnerGroups;
+
+    return partnerGroups.filter((group) => {
+      if (group.deliveryGuyName.toLowerCase().includes(query)) return true;
+      return group.items.some((item) =>
+        item.productName.toLowerCase().includes(query),
+      );
+    });
+  }, [partnerGroups, partnerSearch]);
+
+  const activeProducts = products.filter((p) => p.isActive);
+
   async function handleAssign() {
     if (!assignGuyId) {
       toast.error(t("assignments.selectPartnerError"));
@@ -112,6 +164,29 @@ export default function AssignmentsPage() {
     if (items.length === 0) {
       toast.error(t("assignments.addProductError"));
       return;
+    }
+
+    const productIds = items.map((item) => item.productId);
+    if (new Set(productIds).size !== productIds.length) {
+      toast.error(t("assignments.duplicateProductsError"));
+      return;
+    }
+
+    for (const item of items) {
+      const product = activeProducts.find((row) => row.id === item.productId);
+      if (!product) {
+        toast.error(t("assignments.addProductError"));
+        return;
+      }
+      if (item.quantity > product.stockAvailable) {
+        toast.error(
+          t("assignments.quantityExceedsStockNamed", {
+            name: product.name,
+            stock: product.stockAvailable,
+          }),
+        );
+        return;
+      }
     }
 
     setSaving(true);
@@ -171,36 +246,6 @@ export default function AssignmentsPage() {
     toast.success(t("assignments.pdfDownloadedToast"));
   }
 
-  const summaryColumns: Column<AllocationSummary>[] = [
-    {
-      key: "guy",
-      header: t("assignments.colPartner"),
-      render: (row) => row.deliveryGuyName,
-    },
-    {
-      key: "product",
-      header: t("assignments.colProduct"),
-      render: (row) => row.productName,
-    },
-    {
-      key: "allocated",
-      header: t("assignments.colGiven"),
-      render: (row) => row.allocated,
-    },
-    { key: "sold", header: t("assignments.colSold"), render: (row) => row.sold },
-    {
-      key: "remaining",
-      header: t("assignments.colRemaining"),
-      render: (row) => (
-        <span className={row.remaining === 0 ? "text-stone-500" : "font-medium"}>
-          {row.remaining}
-        </span>
-      ),
-    },
-  ];
-
-  const activeProducts = products.filter((p) => p.isActive);
-
   return (
     <div>
       <PageHeader
@@ -250,23 +295,88 @@ export default function AssignmentsPage() {
       <h2 className="mb-3 text-lg font-semibold text-black">
         {t("assignments.summaryTitle")}
       </h2>
-      <DataTable
-        columns={summaryColumns}
-        data={summary}
-        loading={loading}
-        rowKey={(row) => `${row.deliveryGuyId}-${row.productId}`}
-        emptyMessage={t("assignments.emptySummary")}
-        pageSize={10}
-        getSearchText={(row) =>
-          [
-            row.deliveryGuyName,
-            row.productName,
-            row.allocated,
-            row.sold,
-            row.remaining,
-          ].join(" ")
-        }
-        searchPlaceholder={t("assignments.searchSummary")}
+
+      {loading ? (
+        <LoadingSpinner fullPage label={t("common.loading")} />
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
+          <div className="border-b border-amber-100 p-4">
+            <TableSearchBar
+              value={partnerSearch}
+              onChange={setPartnerSearch}
+              placeholder={t("assignments.searchPartners")}
+            />
+          </div>
+
+          {filteredGroups.length === 0 ? (
+            <p className="px-4 py-10 text-center text-sm text-stone-600">
+              {partnerSearch.trim()
+                ? t("table.noMatching")
+                : t("assignments.emptySummary")}
+            </p>
+          ) : (
+            <ul className="divide-y divide-amber-50">
+              {filteredGroups.map((group) => (
+                <li key={group.deliveryGuyId}>
+                  <button
+                    type="button"
+                    onClick={() => setViewing(group)}
+                    className="flex w-full flex-col gap-3 px-4 py-4 text-left transition hover:bg-amber-50/50 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-semibold text-stone-900">
+                        {group.deliveryGuyName}
+                      </p>
+                      <p className="mt-0.5 text-sm text-stone-600">
+                        {t("assignments.productCount", {
+                          count: group.items.length,
+                        })}
+                        {" · "}
+                        {group.items
+                          .slice(0, 3)
+                          .map((item) => item.productName)
+                          .join(", ")}
+                        {group.items.length > 3 ? "…" : ""}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 sm:shrink-0">
+                      <div className="flex gap-3 text-xs text-stone-600">
+                        <span>
+                          {t("assignments.colGiven")}:{" "}
+                          <strong className="text-stone-900">
+                            {group.totalAllocated}
+                          </strong>
+                        </span>
+                        <span>
+                          {t("assignments.colSold")}:{" "}
+                          <strong className="text-stone-900">
+                            {group.totalSold}
+                          </strong>
+                        </span>
+                        <span>
+                          {t("assignments.colRemaining")}:{" "}
+                          <strong className="text-stone-900">
+                            {group.totalRemaining}
+                          </strong>
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-amber-800">
+                        <HiOutlineEye className="h-4 w-4" aria-hidden />
+                        {t("assignments.viewDetails")}
+                      </span>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <AssignmentPartnerViewModal
+        group={viewing}
+        date={date}
+        onClose={() => setViewing(null)}
       />
 
       <Modal
@@ -316,43 +426,140 @@ export default function AssignmentsPage() {
             {t("assignments.assigningForDate", { date })}
           </p>
 
-          {lines.map((line, index) => (
-            <div key={index} className="grid gap-3 sm:grid-cols-2">
-              <Select
-                label={t("common.product")}
-                value={line.productId}
-                onChange={(e) => {
-                  const next = [...lines];
-                  next[index] = { ...next[index], productId: e.target.value };
-                  setLines(next);
-                }}
-              >
-                <option value="">{t("assignments.selectProduct")}</option>
-                {activeProducts.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {t("assignments.productStockOption", {
-                      name: product.name,
-                      stock: product.stockAvailable,
-                    })}
-                  </option>
-                ))}
-              </Select>
-              <Input
-                label={t("common.quantity")}
-                type="number"
-                min="1"
-                value={line.quantity}
-                onChange={(e) => {
-                  const next = [...lines];
-                  next[index] = { ...next[index], quantity: e.target.value };
-                  setLines(next);
-                }}
-              />
-            </div>
-          ))}
+          {lines.map((line, index) => {
+            const selectedElsewhere = new Set(
+              lines
+                .map((item, itemIndex) =>
+                  itemIndex !== index && item.productId
+                    ? item.productId
+                    : null,
+                )
+                .filter((id): id is string => Boolean(id)),
+            );
+            const selectedProduct = activeProducts.find(
+              (product) => String(product.id) === line.productId,
+            );
+            const maxStock = selectedProduct?.stockAvailable ?? undefined;
+            const quantityValue = Number(line.quantity);
+            const quantityOverStock =
+              selectedProduct &&
+              line.quantity !== "" &&
+              Number.isFinite(quantityValue) &&
+              quantityValue > selectedProduct.stockAvailable;
+
+            return (
+              <div key={index} className="grid gap-3 sm:grid-cols-2">
+                <Select
+                  label={t("common.product")}
+                  value={line.productId}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (
+                      value &&
+                      lines.some(
+                        (item, itemIndex) =>
+                          itemIndex !== index && item.productId === value,
+                      )
+                    ) {
+                      toast.error(t("assignments.productAlreadySelected"));
+                      return;
+                    }
+                    const product = activeProducts.find(
+                      (row) => String(row.id) === value,
+                    );
+                    const next = [...lines];
+                    let quantity = next[index].quantity;
+                    if (
+                      product &&
+                      quantity !== "" &&
+                      Number(quantity) > product.stockAvailable
+                    ) {
+                      quantity = String(product.stockAvailable);
+                    }
+                    next[index] = {
+                      ...next[index],
+                      productId: value,
+                      quantity,
+                    };
+                    setLines(next);
+                  }}
+                >
+                  <option value="">{t("assignments.selectProduct")}</option>
+                  {activeProducts.map((product) => {
+                    const id = String(product.id);
+                    const taken = selectedElsewhere.has(id);
+                    return (
+                      <option key={product.id} value={product.id} disabled={taken}>
+                        {t("assignments.productStockOption", {
+                          name: product.name,
+                          stock: product.stockAvailable,
+                        })}
+                        {taken
+                          ? t("assignments.productAlreadySelectedSuffix")
+                          : ""}
+                      </option>
+                    );
+                  })}
+                </Select>
+                <Input
+                  label={t("common.quantity")}
+                  type="number"
+                  min={1}
+                  max={maxStock}
+                  value={line.quantity}
+                  disabled={!line.productId}
+                  error={
+                    quantityOverStock && selectedProduct
+                      ? t("assignments.quantityExceedsStock", {
+                          stock: selectedProduct.stockAvailable,
+                        })
+                      : undefined
+                  }
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") {
+                      const next = [...lines];
+                      next[index] = { ...next[index], quantity: "" };
+                      setLines(next);
+                      return;
+                    }
+
+                    if (!/^\d+$/.test(raw)) return;
+
+                    let quantity = Number(raw);
+                    if (quantity < 1) quantity = 1;
+
+                    if (
+                      selectedProduct &&
+                      quantity > selectedProduct.stockAvailable
+                    ) {
+                      quantity = selectedProduct.stockAvailable;
+                      toast.error(
+                        t("assignments.quantityExceedsStock", {
+                          stock: selectedProduct.stockAvailable,
+                        }),
+                      );
+                    }
+
+                    const next = [...lines];
+                    next[index] = {
+                      ...next[index],
+                      quantity: String(quantity),
+                    };
+                    setLines(next);
+                  }}
+                />
+              </div>
+            );
+          })}
 
           <Button
             variant="secondary"
+            disabled={
+              activeProducts.length > 0 &&
+              lines.filter((line) => line.productId).length >=
+                activeProducts.length
+            }
             onClick={() =>
               setLines((current) => [...current, { productId: "", quantity: "" }])
             }

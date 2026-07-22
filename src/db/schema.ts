@@ -124,6 +124,19 @@ export const deliveryAllocations = pgTable("delivery_allocations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+/** Admin closed a driver's business day — unsold stock returned to bakery. */
+export const driverStockClosures = pgTable("driver_stock_closures", {
+  id: serial("id").primaryKey(),
+  deliveryGuyId: integer("delivery_guy_id")
+    .notNull()
+    .references(() => users.id),
+  businessDate: text("business_date").notNull(),
+  closedAt: timestamp("closed_at").defaultNow().notNull(),
+  closedById: integer("closed_by_id")
+    .notNull()
+    .references(() => users.id),
+});
+
 export const notificationTypeEnum = pgEnum("notification_type", [
   "sale",
   "assignment",
@@ -213,6 +226,7 @@ export type Shop = typeof shops.$inferSelect;
 export type Sale = typeof sales.$inferSelect;
 export type SaleItem = typeof saleItems.$inferSelect;
 export type DeliveryAllocation = typeof deliveryAllocations.$inferSelect;
+export type DriverStockClosure = typeof driverStockClosures.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type DeliveryLocation = typeof deliveryLocations.$inferSelect;
 export type SaleComment = typeof saleComments.$inferSelect;

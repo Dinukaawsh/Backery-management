@@ -413,6 +413,15 @@ export const en = {
   "assignments.description":
     "Give products to delivery partners each day. They sell from this assigned stock via the mobile app.",
   "assignments.assignStock": "+ Assign stock",
+  "assignments.pendingUnsoldTitle": "Unsold stock — reset required",
+  "assignments.pendingUnsoldHint":
+    "These partners still have unsold items from previous days. Reset to return stock to bakery inventory before assigning again.",
+  "assignments.resetUnsold": "Reset unsold",
+  "assignments.resettingUnsold": "Resetting...",
+  "assignments.resetUnsoldSuccess": "Unsold stock returned to bakery for {name}",
+  "assignments.resetRequiredSuffix": " (reset required)",
+  "assignments.resetBeforeAssign": "Reset unsold stock for this partner first",
+  "assignments.pendingUnsoldLine": "{date}: {name} × {qty}",
   "assignments.assignStockModal": "Assign stock to delivery partner",
   "assignments.assigning": "Assigning...",
   "assignments.assignStockButton": "Assign stock",

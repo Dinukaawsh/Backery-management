@@ -506,6 +506,44 @@ export async function deleteAllocation(id: number) {
   await apiFetch(`/api/allocations/${id}`, { method: "DELETE" });
 }
 
+export type PendingUnsoldLine = {
+  businessDate: string;
+  productId: number;
+  productName: string;
+  quantity: number;
+};
+
+export type PendingDriverStock = {
+  deliveryGuyId: number;
+  deliveryGuyName: string;
+  dates: string[];
+  items: PendingUnsoldLine[];
+  totalRemaining: number;
+};
+
+export async function fetchPendingUnsoldStock() {
+  const data = await apiFetch<{ pending: PendingDriverStock[] }>(
+    "/api/stock-closures/pending",
+  );
+  return data.pending;
+}
+
+export async function resetDriverUnsoldStock(deliveryGuyId: number) {
+  return apiFetch<{
+    deliveryGuyId: number;
+    deliveryGuyName: string;
+    returnedByProduct: Array<{
+      productId: number;
+      productName: string;
+      quantity: number;
+    }>;
+    datesClosed: string[];
+  }>("/api/stock-closures", {
+    method: "POST",
+    body: JSON.stringify({ deliveryGuyId }),
+  });
+}
+
 export async function fetchShops() {
   const data = await apiFetch<{ shops: Shop[] }>("/api/shops");
   return data.shops;

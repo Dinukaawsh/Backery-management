@@ -26,9 +26,12 @@ import {
   createAllocation,
   fetchAllocations,
   fetchDeliveryGuys,
+  fetchPendingUnsoldStock,
   fetchProducts,
+  resetDriverUnsoldStock,
   type AllocationSummary,
   type DeliveryGuy,
+  type PendingDriverStock,
   type Product,
 } from "@/lib/api";
 import { downloadPdf } from "@/lib/export-pdf";
@@ -87,6 +90,13 @@ export default function AssignmentsPage() {
   const [saving, setSaving] = useState(false);
   const [viewing, setViewing] = useState<PartnerAssignmentGroup | null>(null);
   const [partnerSearch, setPartnerSearch] = useState("");
+  const [pendingStock, setPendingStock] = useState<PendingDriverStock[]>([]);
+  const [resettingId, setResettingId] = useState<number | null>(null);
+
+  const pendingGuyIds = useMemo(
+    () => new Set(pendingStock.map((row) => row.deliveryGuyId)),
+    [pendingStock],
+  );
 
   const filtersActive =
     deliveryGuyId !== "" || date !== todayDateString();
@@ -99,11 +109,15 @@ export default function AssignmentsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchAllocations({
-        date,
-        deliveryGuyId: deliveryGuyId ? Number(deliveryGuyId) : undefined,
-      });
+      const [data, pending] = await Promise.all([
+        fetchAllocations({
+          date,
+          deliveryGuyId: deliveryGuyId ? Number(deliveryGuyId) : undefined,
+        }),
+        fetchPendingUnsoldStock(),
+      ]);
       setSummary(data.summary);
+      setPendingStock(pending);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.failedToLoad"));
     } finally {
@@ -148,9 +162,33 @@ export default function AssignmentsPage() {
 
   const activeProducts = products.filter((p) => p.isActive);
 
+  async function handleResetUnsold(deliveryGuyId: number, name: string) {
+    setResettingId(deliveryGuyId);
+    try {
+      await resetDriverUnsoldStock(deliveryGuyId);
+      toast.success(t("assignments.resetUnsoldSuccess", { name }));
+      const [productRows, pending] = await Promise.all([
+        fetchProducts(),
+        fetchPendingUnsoldStock(),
+      ]);
+      setProducts(productRows);
+      setPendingStock(pending);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.failedToLoad"));
+    } finally {
+      setResettingId(null);
+    }
+  }
+
   async function handleAssign() {
     if (!assignGuyId) {
       toast.error(t("assignments.selectPartnerError"));
+      return;
+    }
+
+    if (pendingGuyIds.has(Number(assignGuyId))) {
+      toast.error(t("assignments.resetBeforeAssign"));
       return;
     }
 
@@ -268,6 +306,57 @@ export default function AssignmentsPage() {
           </PageHeaderActions>
         }
       />
+
+      {pendingStock.length > 0 ? (
+        <div className="mb-6 space-y-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
+          <div>
+            <h3 className="font-semibold text-amber-950">
+              {t("assignments.pendingUnsoldTitle")}
+            </h3>
+            <p className="mt-1 text-sm text-amber-900">
+              {t("assignments.pendingUnsoldHint")}
+            </p>
+          </div>
+          {pendingStock.map((driver) => (
+            <div
+              key={driver.deliveryGuyId}
+              className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-stone-900">
+                  {driver.deliveryGuyName}
+                </p>
+                <ul className="mt-1 space-y-0.5 text-sm text-stone-600">
+                  {driver.items.map((item) => (
+                    <li key={`${driver.deliveryGuyId}-${item.businessDate}-${item.productId}`}>
+                      {t("assignments.pendingUnsoldLine", {
+                        date: item.businessDate,
+                        name: item.productName,
+                        qty: item.quantity,
+                      })}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  void handleResetUnsold(
+                    driver.deliveryGuyId,
+                    driver.deliveryGuyName,
+                  )
+                }
+                disabled={resettingId === driver.deliveryGuyId}
+                className="shrink-0"
+              >
+                {resettingId === driver.deliveryGuyId
+                  ? t("assignments.resettingUnsold")
+                  : t("assignments.resetUnsold")}
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mb-6 grid gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto]">
         <DateInput
@@ -403,9 +492,16 @@ export default function AssignmentsPage() {
           >
             <option value="">{t("assignments.selectPartner")}</option>
             {deliveryGuys.map((guy) => (
-              <option key={guy.id} value={guy.id} disabled={!guy.isActive}>
+              <option
+                key={guy.id}
+                value={guy.id}
+                disabled={!guy.isActive || pendingGuyIds.has(guy.id)}
+              >
                 {guy.name}
                 {!guy.isActive ? t("assignments.partnerDisabledSuffix") : ""}
+                {pendingGuyIds.has(guy.id)
+                  ? t("assignments.resetRequiredSuffix")
+                  : ""}
               </option>
             ))}
           </Select>

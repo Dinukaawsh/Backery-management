@@ -416,6 +416,15 @@ export const si: { [K in keyof EnMessages]: string } = {
   "assignments.description":
     "දිනපතා බෙදාහැරීමේ හවුල්කරුවන්ට නිෂ්පාදන ලබා දෙන්න. ඔවුන් ජංගම යෙදුමෙන් විකුණයි.",
   "assignments.assignStock": "+ තොග පවරන්න",
+  "assignments.pendingUnsoldTitle": "විකුණා නොමැති තොග — reset අවශ්‍ය",
+  "assignments.pendingUnsoldHint":
+    "මෙම හවුල්කරුවන්ට පෙර දිනවලින් විකුණා නොමැති තොග ඇත. නැවත පවරීමට පෙර reset කර බේකරියේ තොගයට ආපසු දෙන්න.",
+  "assignments.resetUnsold": "විකුණා නොමැති reset",
+  "assignments.resettingUnsold": "Reset වෙමින්...",
+  "assignments.resetUnsoldSuccess": "{name} සඳහා විකුණා නොමැති තොග බේකරියට ආපසු දුන්නා",
+  "assignments.resetRequiredSuffix": " (reset අවශ්‍ය)",
+  "assignments.resetBeforeAssign": "පළමුව මෙම හවුල්කරුගේ විකුණා නොමැති තොග reset කරන්න",
+  "assignments.pendingUnsoldLine": "{date}: {name} × {qty}",
   "assignments.assignStockModal": "හවුල්කරුට තොග පවරන්න",
   "assignments.assigning": "පවරමින්...",
   "assignments.assignStockButton": "තොග පවරන්න",

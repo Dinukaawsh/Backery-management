@@ -8,6 +8,7 @@ import { requireAuth } from "@/lib/api-auth";
 import { corsOptionsResponse, corsResponse } from "@/lib/cors";
 import { dayRange, localDateString, parseDateInput } from "@/lib/dates";
 import { notifyUser } from "@/lib/notifications";
+import { driverHasPendingUnsold } from "@/lib/stock-closure";
 
 export async function OPTIONS() {
   return corsOptionsResponse();
@@ -142,6 +143,15 @@ export async function POST(request: NextRequest) {
 
     if (!deliveryGuy || deliveryGuy.role !== "delivery" || !deliveryGuy.isActive) {
       return corsResponse({ error: "Delivery partner not found or inactive" }, 400);
+    }
+
+    if (await driverHasPendingUnsold(deliveryGuyId)) {
+      return corsResponse(
+        {
+          error: `Reset unsold stock for ${deliveryGuy.name} before assigning new stock.`,
+        },
+        400,
+      );
     }
 
     const created = [];
